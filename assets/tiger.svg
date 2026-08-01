@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#3f8fd6"/>
+      <stop offset="0.5" stop-color="#1e5fae"/>
+      <stop offset="1" stop-color="#0a2d66"/>
+    </linearGradient>
+    <linearGradient id="sw1" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#cfe8ff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="b30"><feGaussianBlur stdDeviation="30"/></filter>
+    <filter id="b12"><feGaussianBlur stdDeviation="12"/></filter>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#sky)"/>
+  <g filter="url(#b30)">
+    <path d="M-200 900 C 400 500, 900 1100, 1500 650 S 2200 550, 2200 550 L 2200 400 C 1500 900, 1000 300, 300 750 S -200 700, -200 700 Z" fill="url(#sw1)"/>
+    <path d="M-200 500 C 500 200, 1100 700, 1700 320 L 2200 150 L 2200 60 C 1500 450, 900 50, 200 380 Z" fill="#9fd0ff" opacity="0.35"/>
+    <path d="M-200 1150 C 600 800, 1200 1250, 2200 850 L 2200 1000 C 1300 1350, 700 950, -200 1300 Z" fill="#7ab8f0" opacity="0.4"/>
+  </g>
+  <g filter="url(#b12)">
+    <path d="M-200 820 C 450 470, 950 1020, 1550 610 S 2200 500, 2200 500 L 2200 480 C 1550 640, 950 990, 450 640 S -200 800, -200 800 Z" fill="#ffffff" opacity="0.5"/>
+  </g>
+  <ellipse cx="500" cy="300" rx="700" ry="400" fill="#ffffff" opacity="0.08" filter="url(#b30)"/>
+</svg>

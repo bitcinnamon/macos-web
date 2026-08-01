@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1200" viewBox="0 0 1920 1200" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1a1040"/>
+      <stop offset="0.45" stop-color="#2a1a6e"/>
+      <stop offset="0.75" stop-color="#0e1e52"/>
+      <stop offset="1" stop-color="#060a24"/>
+    </linearGradient>
+    <linearGradient id="beam1" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#b96bff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#c98aff" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#7b3fe4" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4fc3ff" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#6ad1ff" stop-opacity="0.5"/>
+      <stop offset="1" stop-color="#1e6fd8" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam3" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#ff9ad5" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#ff7ac0" stop-opacity="0.4"/>
+      <stop offset="1" stop-color="#d33fa0" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="beam4" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#8affd0" stop-opacity="0"/>
+      <stop offset="0.5" stop-color="#5fe8c0" stop-opacity="0.28"/>
+      <stop offset="1" stop-color="#1fa080" stop-opacity="0"/>
+    </linearGradient>
+    <filter id="blur40"><feGaussianBlur stdDeviation="40"/></filter>
+    <filter id="blur18"><feGaussianBlur stdDeviation="18"/></filter>
+  </defs>
+  <rect width="1920" height="1200" fill="url(#bg)"/>
+  <g filter="url(#blur40)">
+    <path d="M-100 1300 L500 -200 L780 -200 L180 1300 Z" fill="url(#beam1)"/>
+    <path d="M300 1300 L1000 -200 L1180 -200 L480 1300 Z" fill="url(#beam2)"/>
+    <path d="M700 1300 L1450 -200 L1700 -200 L950 1300 Z" fill="url(#beam3)"/>
+    <path d="M1100 1300 L1800 -200 L2050 -200 L1350 1300 Z" fill="url(#beam1)"/>
+    <path d="M1400 1300 L2100 -200 L2240 -200 L1540 1300 Z" fill="url(#beam2)"/>
+    <path d="M100 1300 L750 -200 L830 -200 L180 1300 Z" fill="url(#beam4)"/>
+  </g>
+  <g filter="url(#blur18)">
+    <path d="M420 1300 L1080 -200 L1120 -200 L460 1300 Z" fill="#cfa6ff" opacity="0.35"/>
+    <path d="M900 1300 L1560 -200 L1595 -200 L935 1300 Z" fill="#9ed9ff" opacity="0.3"/>
+    <path d="M1250 1300 L1900 -200 L1925 -200 L1275 1300 Z" fill="#ffb2dd" opacity="0.25"/>
+  </g>
+  <ellipse cx="960" cy="640" rx="900" ry="520" fill="#ffffff" opacity="0.05" filter="url(#blur40)"/>
+</svg>
