@@ -1,5 +1,11 @@
 // Leopard system extensions: keyboard routing, Spaces, Dashboard, Time Machine,
 // Dock Stacks, Quick Look, and full-content Spotlight.
+import { t } from './i18n/index.js';
+import { System } from './system/index.js';
+import { VFS } from './vfs.js';
+import { ICONS } from './icons.js';
+import { paths } from './config.js';
+
 const Leopard = (() => {
   const { el } = System;
   const STORE = {
@@ -96,7 +102,7 @@ const Leopard = (() => {
       try {
         if (!document.fullscreenElement) await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
       } catch (e) {
-        System.alertBox('键盘捕获', `浏览器拒绝进入全屏。仍可使用较少与 macOS 冲突的 ${safeLabel()} 替代快捷键。`);
+        System.alertBox(t('mb.kbCapture.title'), t('mb.kbCapture.denied', { label: safeLabel() }));
         return false;
       }
       try {
@@ -105,7 +111,7 @@ const Leopard = (() => {
       state.capture = true;
       document.body.classList.add('keyboard-captured');
       updateCaptureStatus();
-      toast('Leopard 键盘捕获已开启', '原版快捷键会在浏览器允许时生效；⌘Tab、⌘Space 等系统保留组合仍可能由 macOS 接管。');
+      toast(t('mb.kbCapture.onToast'), t('mb.kbCapture.onBody'));
       return true;
     }
     try { navigator.keyboard?.unlock?.(); } catch (e) {}
@@ -122,7 +128,7 @@ const Leopard = (() => {
     const item = document.querySelector('#mb-keyboard-capture');
     if (!item) return;
     item.classList.toggle('active', state.capture);
-    item.title = state.capture ? '键盘捕获：开启' : '键盘捕获：关闭';
+    item.title = state.capture ? t('mb.kbCapture.statusOn') : t('mb.kbCapture.statusOff');
     item.querySelector('span').textContent = state.capture ? '⌘' : safeLabel();
   }
 
@@ -214,10 +220,15 @@ const Leopard = (() => {
     const ensure = (id, enabled, html, title, onOpen, menuItems) => {
       let item = document.querySelector(`#${id}`);
       if (!enabled) { item?.remove(); return; }
-      if (item) return;
+      if (item) {
+        item.title = title;
+        item.setAttribute('aria-label', title);
+        return;
+      }
       item = el('div', 'mb-item mb-status');
       item.id = id;
       item.title = title;
+      item.setAttribute('aria-label', title);
       item.innerHTML = html;
       item.addEventListener('click', onOpen);
       item.addEventListener('contextmenu', (event) => {
@@ -229,24 +240,41 @@ const Leopard = (() => {
     };
     ensure('mb-bluetooth', bluetoothPref.menu !== false,
       '<svg width="13" height="16" viewBox="0 0 13 18"><path d="M6 1l5 5-4 3 4 4-5 4V1ZM1 5l10 8M1 13l10-7" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      'Bluetooth：打开', () => System.launch('sysprefs', { pane:'bluetooth' }),
-      () => [{ label:'Bluetooth：打开' }, { label:'可被发现' }, { sep:true }, { label:'打开 Bluetooth 偏好设置…', action:()=>System.launch('sysprefs', { pane:'bluetooth' }) }]);
+      t('mb.bt.on'), () => System.launch('sysprefs', { pane:'bluetooth' }),
+      () => [{ label:t('mb.bt.on') }, { label:t('mb.bt.discoverable') }, { sep:true }, { label:t('mb.bt.openPrefs'), action:()=>System.launch('sysprefs', { pane:'bluetooth' }) }]);
     ensure('mb-timemachine', timeMachinePref.menu !== false,
       '<svg width="17" height="17" viewBox="0 0 20 20"><path d="M6 5a7 7 0 1 1-2 5" fill="none" stroke="#333" stroke-width="1.6" stroke-linecap="round"/><path d="M2.5 4.5 6 5 5.3 1.7M10 5.5V10l3.2 2" fill="none" stroke="#333" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-      'Time Machine', openTimeMachine,
-      () => [{ label:'立即备份', action:()=>{ saveSnapshot('菜单栏备份'); toast('Time Machine','备份已完成。'); } }, { label:'进入 Time Machine', action:openTimeMachine }, { sep:true }, { label:'打开 Time Machine 偏好设置…', action:()=>System.launch('sysprefs', { pane:'timemachine' }) }]);
+      t('app.timemachine'), openTimeMachine,
+      () => [{ label:t('ui.10119439c7f3'), action:()=>{ saveSnapshot(t('mb.tm.menuBackup')); toast(t('app.timemachine'), t('mb.tm.backupDone')); } }, { label:t('mb.tm.enter'), action:openTimeMachine }, { sep:true }, { label:t('mb.tm.openPrefs'), action:()=>System.launch('sysprefs', { pane:'timemachine' }) }]);
     ensure('mb-ichat', applicationPrefs.ichat?.showMenuStatus === true,
       '<svg width="16" height="16" viewBox="0 0 20 20"><path d="M2 8.7C2 4.8 5.5 2 10 2s8 2.8 8 6.7-3.5 6.7-8 6.7c-.9 0-1.8-.1-2.6-.3L3.3 18l1.2-4.1C2.9 12.6 2 10.8 2 8.7Z" fill="#5fae52" stroke="#2e6f29"/><circle cx="7" cy="8" r="1.2" fill="#fff"/><circle cx="13" cy="8" r="1.2" fill="#fff"/><path d="M6.8 11q3.2 2.3 6.4 0" fill="none" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>',
-      'iChat：可用', () => System.launch('ichat'),
+      t('mb.ichat.available'), () => System.launch('ichat'),
       () => [
-        { label:'可用', checked:true, disabled:true },
-        { label:'正在使用 Mac OS X Leopard', disabled:true },
+        { label:t('ui.e91365cf9ed9'), checked:true, disabled:true },
+        { label:t('mb.ichat.statusLine'), disabled:true },
         { sep:true },
-        { label:'新建聊天…', action:()=>System.launch('ichat') },
-        { label:'显示好友列表', action:()=>System.launch('ichat') },
+        { label:t('mb.ichat.newChat'), action:()=>System.launch('ichat') },
+        { label:t('mb.ichat.showBuddies'), action:()=>System.launch('ichat') },
         { sep:true },
-        { label:'打开 iChat 偏好设置…', action:()=>System.showApplicationPreferences?.('ichat') },
+        { label:t('mb.ichat.openPrefs'), action:()=>System.showApplicationPreferences?.('ichat') },
       ]);
+  }
+
+  /** Re-apply status-bar titles/labels after locale switch (items are created once). */
+  function refreshStatusChrome() {
+    const spaces = document.querySelector('#mb-spaces');
+    if (spaces) {
+      spaces.title = t('mb.spaces.title');
+      spaces.setAttribute('aria-label', t('mb.spaces.title'));
+    }
+    paintAirportStatus();
+    updateCaptureStatus();
+    syncMenuExtras();
+    const vol = document.querySelector('#mb-volume');
+    if (vol) vol.title = t('menubar.volume');
+    const spotBtn = document.querySelector('#mb-spotlight');
+    if (spotBtn) spotBtn.title = t('menubar.spotlight');
+    System.clockTick?.();
   }
 
   function airportSettings() {
@@ -260,7 +288,7 @@ const Leopard = (() => {
     if (!airport) return;
     const on = airportSettings().airportOn !== false;
     airport.classList.toggle('airport-off', !on);
-    airport.title = on ? 'AirPort：已连接到 Leopard Web' : 'AirPort：关闭';
+    airport.title = on ? t('mb.airport.connected') : t('mb.airport.off');
     airport.setAttribute('aria-label', airport.title);
   }
 
@@ -270,7 +298,7 @@ const Leopard = (() => {
     localStorage.setItem('macweb.pref.network', JSON.stringify(cfg));
     paintAirportStatus();
     document.dispatchEvent(new CustomEvent('leopard-network-changed', { detail:{ airportOn:!!on } }));
-    toast('AirPort', on ? '已打开并连接到 Leopard Web。' : 'AirPort 已关闭。');
+    toast('AirPort', on ? t('mb.airport.toastOn') : t('mb.airport.toastOff'));
   }
 
   function openAirportMenu(event) {
@@ -281,14 +309,14 @@ const Leopard = (() => {
     const on = cfg.airportOn !== false;
     const rect = airport.getBoundingClientRect();
     System.contextMenu({ clientX:Math.round(rect.left), clientY:22 }, [
-      { label:on ? 'AirPort：打开' : 'AirPort：关闭', disabled:true },
-      { label:on ? '关闭 AirPort' : '打开 AirPort', action:()=>setAirportEnabled(!on) },
+      { label:on ? t('mb.airport.statusOn') : t('mb.airport.statusOff'), disabled:true },
+      { label:on ? t('mb.airport.turnOff') : t('mb.airport.turnOn'), action:()=>setAirportEnabled(!on) },
       { sep:true },
       { label:`Leopard Web${on ? '  ✓' : ''}`, disabled:!on, action:()=>setAirportEnabled(true) },
-      { label:'加入其他网络…', disabled:!on, action:()=>System.alertBox('加入其他网络','网络名称：Leopard Web\n安全性：WPA2 个人级\n此网页版只保留一个可用的虚拟网络。') },
-      { label:'创建网络…', disabled:!on, action:()=>System.alertBox('创建网络','已准备好电脑到电脑网络向导。浏览器不会创建真实无线网络。') },
+      { label:t('mb.airport.joinOther'), disabled:!on, action:()=>System.alertBox(t('mb.airport.joinTitle'), t('mb.airport.joinBody')) },
+      { label:t('mb.airport.create'), disabled:!on, action:()=>System.alertBox(t('mb.airport.createTitle'), t('mb.airport.createBody')) },
       { sep:true },
-      { label:'打开网络偏好设置…', action:()=>System.launch('sysprefs', { pane:'network' }) },
+      { label:t('mb.airport.openNetPrefs'), action:()=>System.launch('sysprefs', { pane:'network' }) },
     ]);
   }
 
@@ -303,20 +331,21 @@ const Leopard = (() => {
       e.stopPropagation();
       const cfg = settings();
       System.contextMenu(e, [
-        { label: state.capture ? '退出键盘捕获' : '进入全屏键盘捕获', action: () => setKeyboardCapture(!state.capture) },
+        { label: state.capture ? t('mb.kbCapture.exit') : t('mb.kbCapture.enter'), action: () => setKeyboardCapture(!state.capture) },
         { sep: true },
-        { label: `安全替代快捷键（${safeLabel()}）：${cfg.safeModifiers ? '开' : '关'}`, action: () => saveSettings({ safeModifiers: !settings().safeModifiers }) },
-        { label: `使用 ⌃⇧（推荐）${cfg.safeProfile === 'ctrlShift' ? ' ✓' : ''}`, action: () => saveSettings({ safeProfile: 'ctrlShift' }) },
-        { label: `使用 ⌃⌥（VoiceOver 用户勿选）${cfg.safeProfile === 'ctrlAlt' ? ' ✓' : ''}`, action: () => saveSettings({ safeProfile: 'ctrlAlt' }) },
-        { label: `捕获时启用原版 ⌘ 键：${cfg.originalWhenCaptured ? '开' : '关'}`, action: () => saveSettings({ originalWhenCaptured: !settings().originalWhenCaptured }) },
+        { label: t('mb.kbCapture.safeToggle', { label: safeLabel(), state: cfg.safeModifiers ? t('mb.on') : t('mb.off') }), action: () => saveSettings({ safeModifiers: !settings().safeModifiers }) },
+        { label: t('mb.kbCapture.useCtrlShift', { check: cfg.safeProfile === 'ctrlShift' ? ' ✓' : '' }), action: () => saveSettings({ safeProfile: 'ctrlShift' }) },
+        { label: t('mb.kbCapture.useCtrlAlt', { check: cfg.safeProfile === 'ctrlAlt' ? ' ✓' : '' }), action: () => saveSettings({ safeProfile: 'ctrlAlt' }) },
+        { label: t('mb.kbCapture.originalCmd', { state: cfg.originalWhenCaptured ? t('mb.on') : t('mb.off') }), action: () => saveSettings({ originalWhenCaptured: !settings().originalWhenCaptured }) },
         { sep: true },
-        { label: '快捷键速查…', action: showShortcutHelp },
+        { label: t('mb.kbCapture.help'), action: showShortcutHelp },
       ]);
     });
     const spaces = el('div', 'mb-item mb-status');
     spaces.id = 'mb-spaces';
     spaces.innerHTML = `<span>${state.currentSpace}</span>`;
-    spaces.title = 'Spaces';
+    spaces.title = t('mb.spaces.title');
+    spaces.setAttribute('aria-label', t('mb.spaces.title'));
     spaces.addEventListener('click', showSpaces);
     const airport = el('div', 'mb-item mb-status mb-airport', glyph('airport', 16));
     airport.id = 'mb-airport';
@@ -329,6 +358,7 @@ const Leopard = (() => {
     document.addEventListener('app-preferences-changed', (event) => {
       if (event.detail?.appId === 'ichat') syncMenuExtras();
     });
+    document.addEventListener('locale-ui-refresh', refreshStatusChrome);
     updateCaptureStatus();
     paintAirportStatus();
     syncMenuExtras();
@@ -338,20 +368,20 @@ const Leopard = (() => {
     const safe = safeLabel();
     const c = el('div', 'shortcut-help');
     c.innerHTML = `
-      <h2>Leopard 快捷键</h2>
-      <p>macOS 会优先截获部分系统组合，所以普通模式使用 <b>${safe}</b> 作为安全替代修饰键。默认的 ⌃⇧ 不占用 VoiceOver 的 ⌃⌥ 修饰键。</p>
+      <h2>${t('mb.help.heading')}</h2>
+      <p>${t('mb.help.intro', { safe })}</p>
       <table>
-        <tr><th>功能</th><th>网页安全组合</th><th>捕获模式</th></tr>
-        <tr><td>Spotlight</td><td>${safe}Space</td><td>⌘Space（若浏览器收到）</td></tr>
+        <tr><th>${t('mb.help.colAction')}</th><th>${t('mb.help.colSafe')}</th><th>${t('mb.help.colCapture')}</th></tr>
+        <tr><td>Spotlight</td><td>${safe}Space</td><td>${t('mb.help.spotlightCapture')}</td></tr>
         <tr><td>Dashboard</td><td>${safe}D</td><td>F12</td></tr>
-        <tr><td>Spaces 总览</td><td>${safe}S</td><td>F8</td></tr>
-        <tr><td>切换空间</td><td>${safe}← / →</td><td>同左</td></tr>
-        <tr><td>Time Machine</td><td>${safe}T</td><td>同左</td></tr>
-        <tr><td>关闭/最小化/退出</td><td>${safe}W / M / Q</td><td>⌘W / M / Q</td></tr>
-        <tr><td>切换捕获</td><td>${safe}Enter</td><td>${safe}Enter</td></tr>
+        <tr><td>${t('mb.help.spacesOverview')}</td><td>${safe}S</td><td>F8</td></tr>
+        <tr><td>${t('mb.help.switchSpace')}</td><td>${safe}← / →</td><td>${t('mb.help.same')}</td></tr>
+        <tr><td>Time Machine</td><td>${safe}T</td><td>${t('mb.help.same')}</td></tr>
+        <tr><td>${t('mb.help.closeMinQuit')}</td><td>${safe}W / M / Q</td><td>⌘W / M / Q</td></tr>
+        <tr><td>${t('mb.help.toggleCapture')}</td><td>${safe}Enter</td><td>${safe}Enter</td></tr>
       </table>`;
     System.createWindow({
-      app:'sysprefs', title:'键盘快捷键', width:560, height:350, content:c,
+      app:'sysprefs', title:t('mb.help.title'), width:560, height:350, content:c,
       bodyBg:'#ececec', noResize:true,
       autoFitContent:{ minHeight:300, maxHeight:520 },
     });
@@ -403,13 +433,13 @@ const Leopard = (() => {
     document.body.appendChild(badge);
     requestAnimationFrame(() => badge.classList.add('show'));
     setTimeout(() => badge.remove(), 700);
-    System.syslog(`切换到 Space ${space}`, 'Dock');
+    System.syslog(t('mb.spaces.switched', { n: space }), 'Dock');
   }
 
   function showSpaces() {
     if (state.spacesOverlay) { closeSpaces(); return; }
     const overlay = el('div', 'spaces-overlay');
-    const head = el('div', 'spaces-head', '<b>Spaces</b><span>选择桌面空间；窗口标题下显示所属应用</span>');
+    const head = el('div', 'spaces-head', `<b>Spaces</b><span>${t('mb.spaces.hint')}</span>`);
     const grid = el('div', 'spaces-grid');
     for (let i = 1; i <= 4; i++) {
       const tile = el('div', 'space-tile' + (i === state.currentSpace ? ' active' : ''));
@@ -419,7 +449,7 @@ const Leopard = (() => {
       preview.appendChild(el('i'));
       const windowList = el('div', 'space-window-list');
       const wins = System.windows.filter((w) => +(w.dataset.space || 1) === i);
-      if (!wins.length) windowList.textContent = '空桌面';
+      if (!wins.length) windowList.textContent = t('mb.spaces.empty');
       wins.slice(0, 6).forEach((win) => {
         const chip = el('button', 'space-window-chip');
         chip.draggable = true;
@@ -455,7 +485,7 @@ const Leopard = (() => {
       });
       grid.appendChild(tile);
     }
-    const footer = el('div', 'spaces-foot', `${safeLabel()}← / → 切换 · 可拖动窗口到其他空间 · Esc 退出`);
+    const footer = el('div', 'spaces-foot', t('mb.spaces.foot', { label: safeLabel() }));
     overlay.append(head, grid, footer);
     document.body.appendChild(overlay);
     state.spacesOverlay = overlay;
@@ -473,7 +503,7 @@ const Leopard = (() => {
   function dashboardWidget(type) {
     if (type === 'clock') {
       const w = el('section', 'dash-widget dash-clock');
-      w.innerHTML = '<div class="clock-face"><i class="hour"></i><i class="minute"></i><i class="second"></i><b></b></div><label>本地时间</label>';
+      w.innerHTML = `<div class="clock-face"><i class="hour"></i><i class="minute"></i><i class="second"></i><b></b></div><label>${t('mb.dash.localTime')}</label>`;
       const tick = () => {
         if (!w.isConnected) return;
         const d = new Date();
@@ -488,12 +518,12 @@ const Leopard = (() => {
     if (type === 'calendar') {
       const d = new Date();
       const w = el('section', 'dash-widget dash-calendar');
-      w.innerHTML = `<header>${d.toLocaleDateString('zh-CN', { month: 'long' })}</header><b>${d.getDate()}</b><span>${d.toLocaleDateString('zh-CN', { weekday: 'long' })}</span>`;
+      w.innerHTML = `<header>${d.toLocaleDateString(undefined, { month: 'long' })}</header><b>${d.getDate()}</b><span>${d.toLocaleDateString(undefined, { weekday: 'long' })}</span>`;
       return w;
     }
     if (type === 'weather') {
       const w = el('section', 'dash-widget dash-weather');
-      w.innerHTML = `<header>古晋</header><div><b>☀</b><strong>29°</strong></div><p>晴间多云<br>湿度 78%</p>`;
+      w.innerHTML = `<header>${t('mb.dash.weatherCity')}</header><div><b>☀</b><strong>29°</strong></div><p>${t('mb.dash.weatherBody')}</p>`;
       return w;
     }
     if (type === 'calculator') {
@@ -505,7 +535,7 @@ const Leopard = (() => {
         if (!k) return;
         if (k === 'C') expr = '';
         else if (k === '=') {
-          try { expr = String(Function(`"use strict";return (${expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')})`)()); } catch (err) { expr = '错误'; }
+          try { expr = String(Function(`"use strict";return (${expr.replace(/×/g,'*').replace(/÷/g,'/').replace(/−/g,'-')})`)()); } catch (err) { expr = t('ui.b859c7be7501'); }
         } else if (k === '±') expr = expr.startsWith('-') ? expr.slice(1) : '-' + expr;
         else expr += k;
         w.querySelector('input').value = expr || '0';
@@ -513,8 +543,8 @@ const Leopard = (() => {
       return w;
     }
     const w = el('section', 'dash-widget dash-note');
-    w.innerHTML = '<textarea aria-label="Dashboard 便笺" spellcheck="false"></textarea>';
-    const text = localStorage.getItem(STORE.dashboard) || `欢迎使用 Dashboard。\n\n按 F12 或 ${safeLabel()}D 返回桌面。`;
+    w.innerHTML = `<textarea aria-label="${t('mb.dash.noteAria')}" spellcheck="false"></textarea>`;
+    const text = localStorage.getItem(STORE.dashboard) || t('mb.dash.welcome', { label: safeLabel() });
     w.querySelector('textarea').value = text;
     w.querySelector('textarea').addEventListener('input', (e) => localStorage.setItem(STORE.dashboard, e.target.value));
     return w;
@@ -527,7 +557,7 @@ const Leopard = (() => {
     const canvas = el('canvas', 'dashboard-gpu');
     const widgets = el('div', 'dashboard-widgets');
     ['clock', 'calendar', 'weather', 'calculator', 'note'].forEach((type) => widgets.appendChild(dashboardWidget(type)));
-    const bar = el('div', 'dashboard-bar', `<span>＋</span><b>Dashboard</b><small>F12 / ${safeLabel()}D 关闭</small>`);
+    const bar = el('div', 'dashboard-bar', `<span>＋</span><b>Dashboard</b><small>${t('mb.dash.closeHint', { label: safeLabel() })}</small>`);
     overlay.append(canvas, widgets, bar);
     document.body.appendChild(overlay);
     state.dashboard = overlay;
@@ -555,7 +585,7 @@ const Leopard = (() => {
 
   function saveSnapshot(label) {
     const list = loadSnapshots();
-    list.unshift({ id: Date.now(), at: new Date().toISOString(), label: label || '自动备份', tree: VFS.exportTree() });
+    list.unshift({ id: Date.now(), at: new Date().toISOString(), label: label || t('mb.tm.autoBackup'), tree: VFS.exportTree() });
     let saved = list.slice(0, 12);
     try {
       localStorage.setItem(STORE.snapshots, JSON.stringify(saved));
@@ -567,7 +597,7 @@ const Leopard = (() => {
         Object.values(compact.tree || {}).forEach((node) => {
           if (typeof node?.src === 'string' && node.src.startsWith('data:') && node.src.length > 32768) {
             node.src = '';
-            node.backupNote = '大型图像预览因浏览器存储空间限制未纳入快照';
+            node.backupNote = t('ui.00fd6914b5f6');
           }
         });
         return compact;
@@ -585,7 +615,7 @@ const Leopard = (() => {
       list = [0, 1, 2, 3].map((n) => ({
         id: now - n * 3600000,
         at: new Date(now - n * 3600000).toISOString(),
-        label: n === 0 ? '现在' : `${n} 小时前`,
+        label: n === 0 ? t('mb.tm.now') : t('mb.tm.hoursAgo', { n }),
         tree: VFS.exportTree(),
       }));
       try { localStorage.setItem(STORE.snapshots, JSON.stringify(list)); } catch (e) {}
@@ -603,25 +633,25 @@ const Leopard = (() => {
     const cards = el('div', 'tm-cards');
     const timeline = el('div', 'tm-timeline');
     const controls = el('div', 'tm-controls');
-    const cancel = el('button', 'aqua-btn', '取消');
-    const backup = el('button', 'aqua-btn', '立即备份');
-    const restore = el('button', 'aqua-btn default', '恢复');
+    const cancel = el('button', 'aqua-btn', t('ui.4d0b4688c787'));
+    const backup = el('button', 'aqua-btn', t('ui.10119439c7f3'));
+    const restore = el('button', 'aqua-btn default', t('mb.tm.restore'));
     controls.append(cancel, backup, restore);
     const render = () => {
       cards.innerHTML = '';
       snapshots.slice(0, 7).forEach((shot, i) => {
         const card = el('button', 'tm-card' + (i === selected ? ' selected' : ''));
         card.style.setProperty('--tm-depth', String(i));
-        const desktop = shot.tree?.['/用户/roll/桌面'];
+        const desktop = shot.tree?.[paths.desktop];
         const items = desktop?.children || [];
-        card.innerHTML = `<header><span>Finder</span><time>${new Date(shot.at).toLocaleString('zh-CN')}</time></header>
-          <main><aside>设备<br><b>Macintosh HD</b><br><br>位置<br>桌面<br>文稿<br>图片</aside>
-          <section>${items.slice(0, 10).map((name) => `<i>${ICONS.textfile}<small>${esc(name)}</small></i>`).join('') || '<em>空文件夹</em>'}</section></main>`;
+        card.innerHTML = `<header><span>Finder</span><time>${new Date(shot.at).toLocaleString()}</time></header>
+          <main><aside>${t('mb.tm.devices')}<br><b>Macintosh HD</b><br><br>${t('mb.tm.locations')}<br>${t('mb.tm.desktop')}<br>${t('mb.tm.documents')}<br>${t('mb.tm.pictures')}</aside>
+          <section>${items.slice(0, 10).map((name) => `<i>${ICONS.textfile}<small>${esc(name)}</small></i>`).join('') || `<em>${t('mb.tm.emptyFolder')}</em>`}</section></main>`;
         card.addEventListener('click', () => { selected = i; render(); });
         cards.appendChild(card);
       });
       timeline.innerHTML = snapshots.slice(0, 12).map((shot, i) =>
-        `<button class="${i === selected ? 'active' : ''}" data-i="${i}"><i></i><span>${i === 0 ? '现在' : new Date(shot.at).toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit'})}</span></button>`
+        `<button class="${i === selected ? 'active' : ''}" data-i="${i}"><i></i><span>${i === 0 ? t('mb.tm.now') : new Date(shot.at).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'})}</span></button>`
       ).join('');
     };
     timeline.addEventListener('click', (e) => {
@@ -632,21 +662,42 @@ const Leopard = (() => {
     });
     cancel.addEventListener('click', closeTimeMachine);
     backup.addEventListener('click', () => {
-      snapshots.splice(0, snapshots.length, ...saveSnapshot('手动备份'));
-      selected = 0; render(); toast('Time Machine', '已经完成新的本地快照。');
+      snapshots.splice(0, snapshots.length, ...saveSnapshot(t('ui.d54db03e0b0b')));
+      selected = 0; render(); toast('Time Machine', t('ui.92336be5545f'));
     });
+    const showRestoreFailure = () => {
+      const body = el('div', 'aqua-confirm-sheet-body');
+      const icon = el('div', 'aqua-confirm-sheet-icon');
+      icon.innerHTML = System.appleIconSvg('#9aa2ad');
+      const copy = el('div');
+      const headline = el('h3', '', 'Time Machine');
+      const message = el('p', '', t('ui.e249140eeea5'));
+      copy.append(headline, message);
+      body.append(icon, copy);
+      System.showSheet({
+        parent: overlay,
+        content: body,
+        className: 'aqua-confirm-sheet',
+        buttons: [{ label:t('dialog.ok'), default:true }],
+      });
+    };
     restore.addEventListener('click', () => {
       const shot = snapshots[selected];
       if (!shot) return;
-      System.confirmBox({
-        title: 'Time Machine',
-        text: `要将文件恢复到 ${new Date(shot.at).toLocaleString('zh-CN')} 的状态吗？`,
-        okLabel: '恢复',
+      System.confirmSheet({
+        parent: overlay,
+        headline: 'Time Machine',
+        text: t('mb.tm.restoreConfirm', { when: new Date(shot.at).toLocaleString() }),
+        okLabel: t('mb.tm.restore'),
         onOK: () => {
           if (VFS.importTree(shot.tree)) {
-            toast('Time Machine', '文件已经恢复。');
+            toast('Time Machine', t('ui.a8477ed778c5'));
             closeTimeMachine();
-          } else System.alertBox('Time Machine', '无法恢复这个快照。');
+          } else showRestoreFailure();
+          // The success path closes the parent overlay and the failure path
+          // replaces this sheet. In either case the original sheet must not
+          // run its automatic close path a second time.
+          return false;
         },
       });
     });
@@ -662,6 +713,7 @@ const Leopard = (() => {
     if (!state.timeMachine) return;
     const node = state.timeMachine;
     state.timeMachine = null;
+    node._activeSheet?.close?.('parent-close');
     state.starfieldStop?.();
     state.starfieldStop = null;
     node.classList.remove('on');
@@ -745,32 +797,32 @@ const Leopard = (() => {
 
   function formatBytes(bytes) {
     bytes = Math.max(0, Number(bytes) || 0);
-    if (bytes < 1024) return `${bytes} 字节`;
+    if (bytes < 1024) return t('mb.ql.bytes', { n: bytes });
     if (bytes < 1048576) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
     if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(bytes < 10485760 ? 1 : 0)} MB`;
     return `${(bytes / 1073741824).toFixed(1)} GB`;
   }
 
   function displayPath(path) {
-    if (path === '/用户/roll') return '~';
-    if (path.startsWith('/用户/roll/')) return `~${path.slice('/用户/roll'.length)}`;
+    if (path === paths.home) return '~';
+    if (path.startsWith(paths.home + '/')) return `~${path.slice(paths.home.length)}`;
     return path;
   }
 
   function kindLabel(node, path) {
-    if (!node) return '项目';
-    if (node.type === 'dir') return '文件夹';
-    if (node.type === 'app') return '应用程序';
-    if (node.type === 'kext') return '内核扩展';
-    if (node.kind === 'pdf' || node.mime === 'application/pdf') return 'PDF 文稿';
-    if (node.kind === 'image' || node.mime?.startsWith('image/')) return '图像';
-    if (node.mime?.startsWith('audio/')) return '音频';
-    if (node.mime?.startsWith('video/')) return '影片';
+    if (!node) return t('ui.22336e6b892f');
+    if (node.type === 'dir') return t('ui.46ecac29102a');
+    if (node.type === 'app') return t('ui.8a443802664a');
+    if (node.type === 'kext') return t('mb.ql.kext');
+    if (node.kind === 'pdf' || node.mime === 'application/pdf') return t('ui.0d68043ba5ee');
+    if (node.kind === 'image' || node.mime?.startsWith('image/')) return t('ui.0a0ce84ddefc');
+    if (node.mime?.startsWith('audio/')) return t('mb.ql.audio');
+    if (node.mime?.startsWith('video/')) return t('ui.8d85cec2707c');
     const ext = (VFS.baseName(path).split('.').pop() || '').toLowerCase();
     return ({
-      html:'HTML 文稿', htm:'HTML 文稿', rtf:'RTF 文稿', txt:'纯文本文稿',
-      md:'Markdown 文稿', json:'JSON 文稿', js:'JavaScript 文稿', css:'样式表',
-    })[ext] || '文稿';
+      html:t('ui.dbca6088535d'), htm:t('ui.dbca6088535d'), rtf:t('ui.2cf0a2d4ec2f'), txt:t('ui.0373f454fa15'),
+      md:t('ui.f1ab8e845caa'), json:t('ui.3bdf74c5595f'), js:t('ui.43f4f1fd4077'), css:t('mb.ql.stylesheet'),
+    })[ext] || t('ui.908a913cf12c');
   }
 
   function nodeSource(node, path) {
@@ -830,19 +882,20 @@ const Leopard = (() => {
         const frame = el('iframe', 'ql-richtext');
         frame.title = name;
         frame.setAttribute('sandbox', '');
-        frame.srcdoc = `<!doctype html><meta charset="utf-8"><style>html{background:#fff;color:#111;font:13px/1.5 "Lucida Grande",Arial,sans-serif}body{max-width:720px;margin:0 auto;padding:32px;overflow-wrap:anywhere}img{max-width:100%}</style><body>${node.richText || text}</body>`;
+        frame.referrerPolicy = 'no-referrer';
+        frame.srcdoc = `<!doctype html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; img-src data: blob:; style-src 'unsafe-inline'; base-uri 'none'; form-action 'none'"><meta name="referrer" content="no-referrer"><style>html{background:#fff;color:#111;font:13px/1.5 "Lucida Grande",Arial,sans-serif}body{max-width:720px;margin:0 auto;padding:32px;overflow-wrap:anywhere}img{max-width:100%}</style><body>${node.richText || text}</body>`;
         preview.appendChild(frame);
       } else {
         const pre = el('pre');
-        pre.textContent = text || '空文件';
+        pre.textContent = text || t('ui.b26eaa58409e');
         preview.appendChild(pre);
       }
     } else if (node.type === 'dir') {
       const children = VFS.list(path) || [];
-      preview.innerHTML = `<div class="ql-folder">${glyph('folder', 110)}<h2>${esc(name)}</h2><p>${children.length} 个项目</p><ul>${children.slice(0,12).map((child)=>`<li>${esc(child)}</li>`).join('')}</ul></div>`;
+      preview.innerHTML = `<div class="ql-folder">${glyph('folder', 110)}<h2>${esc(name)}</h2><p>${t('mb.ql.items', { n: children.length })}</p><ul>${children.slice(0,12).map((child)=>`<li>${esc(child)}</li>`).join('')}</ul></div>`;
     } else if (node.type === 'app') {
       const app = System.apps[node.appId];
-      preview.innerHTML = `<div class="ql-app">${app?.icon || ICONS.folder}<h2>${esc(app?.name || name)}</h2><p>${esc(app?.about || 'Mac OS X 应用程序')}</p></div>`;
+      preview.innerHTML = `<div class="ql-app">${app?.icon || ICONS.folder}<h2>${esc(app?.name || name)}</h2><p>${esc(app?.about || t('ui.f379e7b5d6e3'))}</p></div>`;
     } else {
       preview.innerHTML = `<div class="ql-folder">${System.fileIconFor?.(path) || ICONS.textfile}<h2>${esc(name)}</h2></div>`;
     }
@@ -850,20 +903,20 @@ const Leopard = (() => {
     const meta = el('div', 'ql-meta');
     const modified = Number.isFinite(node.modifiedAt)
       ? new Date(node.modifiedAt).toLocaleString('zh-CN', { dateStyle:'medium', timeStyle:'short' })
-      : '未知修改时间';
+      : t('ui.359f0aef29c9');
     const measuredSize = VFS.sizeOf(path);
     const quantity = node.type === 'dir'
-      ? `${(VFS.list(path) || []).length} 个项目`
+      ? t('mb.ql.items', { n: (VFS.list(path) || []).length })
       : (!measuredSize && typeof node.src === 'string' && !node.src.startsWith('data:') && node.content == null)
-        ? '大小未知' : formatBytes(measuredSize);
+        ? t('ui.4f6367e8d5cd') : formatBytes(measuredSize);
     meta.innerHTML = `<b>${esc(name.replace(/\.app$/, ''))}</b><small>${esc(kind)} · ${esc(quantity)} · ${esc(modified)}</small><span>${esc(displayPath(path))}</span>`;
     const actions = el('div', 'ql-actions');
-    const reveal = el('button', 'aqua-btn', node.type === 'dir' ? '显示上层文件夹' : '在 Finder 中显示');
+    const reveal = el('button', 'aqua-btn', node.type === 'dir' ? t('ui.a0476617c1b8') : t('ui.6df2aa0a1ceb'));
     const open = el('button', 'aqua-btn default',
-      node.type === 'app' ? '打开应用程序'
-        : node.type === 'dir' ? '打开文件夹'
+      node.type === 'app' ? t('ui.0a2682fcd14e')
+        : node.type === 'dir' ? t('ui.3120403417db')
           : (node.kind === 'image' || node.kind === 'pdf' || node.mime?.startsWith('image/') || node.mime === 'application/pdf')
-            ? '用“预览”打开' : '打开');
+            ? t('ui.4be0cffcacf2') : t('ui.65fc81e16119'));
     actions.append(reveal, open);
     info.append(meta, actions);
     wrap.append(preview, info);
@@ -880,7 +933,7 @@ const Leopard = (() => {
       else System.openVfsPath?.(path);
     }));
 
-    win = System.createWindow({ app: 'finder', title: `快速查看 — ${name}`, width: 680, height: 500, content: wrap, bodyBg: '#171717' });
+    win = System.createWindow({ app: 'finder', title: t('mb.ql.title', { name }), width: 680, height: 500, content: wrap, bodyBg: '#171717' });
     win.classList.add('quicklook-window');
     win.dataset.quicklookPath = path;
   }
@@ -913,7 +966,7 @@ const Leopard = (() => {
       .sort((a, b) => b.score - a.score || a.app.name.localeCompare(b.app.name, 'zh-CN'))
       .slice(0, 5)
       .map(({ app }) => ({
-        group: '应用程序', name: app.name, detail: app.about || 'Mac OS X 应用程序',
+        group: t('ui.8a443802664a'), name: app.name, detail: app.about || t('ui.f379e7b5d6e3'),
         icon: app.icon, action: () => System.launch(app.id),
       }));
     const indexed = VFS.walk('/')
@@ -931,10 +984,10 @@ const Leopard = (() => {
       })
       .filter((entry) => entry.score >= 0);
     const toResult = ({ path, node, name, kind }) => ({
-      group: node.type === 'dir' ? '文件夹' : '文稿',
+      group: node.type === 'dir' ? t('ui.46ecac29102a') : t('ui.908a913cf12c'),
       name,
       detail: node.type === 'dir'
-        ? `${(VFS.list(path) || []).length} 个项目 · ${displayPath(path)}`
+        ? t('mb.ql.itemsPath', { n: (VFS.list(path) || []).length, path: displayPath(path) })
         : `${kind} · ${displayPath(VFS.parentOf(path))}`,
       icon: System.fileIconFor?.(path) || (node.type === 'dir' ? ICONS.folder : ICONS.textfile),
       path,
@@ -948,7 +1001,7 @@ const Leopard = (() => {
       .slice(0, 6).map(toResult);
     const entries = [...apps, ...documents, ...folders];
     results.setAttribute('role', 'listbox');
-    results.setAttribute('aria-label', 'Spotlight 搜索结果');
+    results.setAttribute('aria-label', t('ui.2337a88392ee'));
     let lastGroup = '';
     entries.forEach((item, i) => {
       if (item.group !== lastGroup) {
@@ -980,7 +1033,7 @@ const Leopard = (() => {
       results.appendChild(row);
     });
     if (entries.length) input?.setAttribute('aria-activedescendant', 'spot-result-0');
-    if (!entries.length) results.appendChild(el('div', 'spot-empty', '没有找到匹配项目'));
+    if (!entries.length) results.appendChild(el('div', 'spot-empty', t('ui.7abc43ed7586')));
   }
 
   function enhanceSpotlight() {
@@ -1036,9 +1089,9 @@ const Leopard = (() => {
       : items.slice(0, 28);
     if (effectiveMode === 'fan') {
       popup.style.setProperty('--fan-count', Math.max(1, visibleItems.length));
-      popup.innerHTML = `<main></main><button class="stack-open-finder"><span>${glyph('folder')}</span><b>在 Finder 中打开</b></button>`;
+      popup.innerHTML = `<main></main><button class="stack-open-finder"><span>${glyph('folder')}</span><b>${t('mb.stack.openInFinder')}</b></button>`;
     } else {
-      popup.innerHTML = `<header>${esc(VFS.baseName(path))}</header><main></main><footer>在 Finder 中打开</footer>`;
+      popup.innerHTML = `<header>${esc(VFS.baseName(path))}</header><main></main><footer>${t('mb.stack.openInFinder')}</footer>`;
     }
     const main = popup.querySelector('main');
     visibleItems.forEach((item, index) => {
@@ -1058,7 +1111,7 @@ const Leopard = (() => {
       main.appendChild(row);
     });
     if (!visibleItems.length && effectiveMode === 'fan') {
-      main.appendChild(el('div', 'stack-fan-empty', '没有项目'));
+      main.appendChild(el('div', 'stack-fan-empty', t('ui.c108620d8eaf')));
     }
     const finderButton = popup.querySelector(effectiveMode === 'fan' ? '.stack-open-finder' : 'footer');
     finderButton.addEventListener('click', () => { closeTransient(); System.launch('finder', { path }); });
@@ -1084,12 +1137,12 @@ const Leopard = (() => {
       e.preventDefault();
       const current = stack.dataset.mode || mode;
       System.contextMenu(e, [
-        { label: '扇状', action: () => { stack.dataset.mode = 'fan'; openStack(stack, path, 'fan'); } },
-        { label: '网格', action: () => { stack.dataset.mode = 'grid'; openStack(stack, path, 'grid'); } },
-        { label: '列表', action: () => { stack.dataset.mode = 'list'; openStack(stack, path, 'list'); } },
+        { label: t('mb.stack.fan'), action: () => { stack.dataset.mode = 'fan'; openStack(stack, path, 'fan'); } },
+        { label: t('mb.stack.grid'), action: () => { stack.dataset.mode = 'grid'; openStack(stack, path, 'grid'); } },
+        { label: t('ui.d46f82fdf073'), action: () => { stack.dataset.mode = 'list'; openStack(stack, path, 'list'); } },
         { sep: true },
-        { label: '在 Finder 中打开', action: () => System.launch('finder', { path }) },
-        { label: `当前显示：${current}`, disabled: true },
+        { label: t('ui.09ab995c0ac3'), action: () => System.launch('finder', { path }) },
+        { label: t('mb.stack.showing', { mode: current }), disabled: true },
       ]);
     });
     return stack;
@@ -1100,8 +1153,8 @@ const Leopard = (() => {
     if (!right || right.dataset.leopard) return;
     right.dataset.leopard = '1';
     const trash = right.querySelector('.dock-icon');
-    const apps = makeStack('/应用程序', '应用程序', 'grid');
-    const downloads = makeStack('/用户/roll/下载', '下载', 'fan');
+    const apps = makeStack('/应用程序', t('ui.8a443802664a'), 'grid');
+    const downloads = makeStack(paths.downloads, t('ui.2b9d013177da'), 'fan');
     right.insertBefore(apps, trash || null);
     right.insertBefore(downloads, trash || null);
     document.addEventListener('vfs-changed', () => {
@@ -1123,18 +1176,18 @@ const Leopard = (() => {
       const id = icon.dataset.app;
       const app = System.apps[id];
       System.contextMenu(e, [
-        { label: app.windows.length ? '显示所有窗口' : '打开', action: () => System.launch(id) },
-        { label: '在 Finder 中显示', action: () => System.launch('finder', { path: '/应用程序' }) },
+        { label: app.windows.length ? t('ui.cf3d4163b4fc') : t('ui.65fc81e16119'), action: () => System.launch(id) },
+        { label: t('ui.6df2aa0a1ceb'), action: () => System.launch('finder', { path: '/应用程序' }) },
         { sep: true },
-        { label: '登录时打开', action: () => {
+        { label: t('ui.12aa35250157'), action: () => {
           let list = [];
           try { list = JSON.parse(localStorage.getItem('macweb.loginitems')) || []; } catch (err) {}
           if (list.includes(id)) list = list.filter((x) => x !== id); else list.push(id);
           localStorage.setItem('macweb.loginitems', JSON.stringify(list));
         } },
-        { label: '从 Dock 中移除', disabled: id === 'finder', action: () => System.removeFromDock(id) },
+        { label: t('ui.74340373095c'), disabled: id === 'finder', action: () => System.removeFromDock(id) },
         { sep: true },
-        { label: '退出', disabled: id === 'finder' || !app.windows.length, action: () => System.quitApp(id) },
+        { label: t('ui.feecb1e6adec'), disabled: id === 'finder' || !app.windows.length, action: () => System.quitApp(id) },
       ]);
     });
     let dragged = null;
@@ -1181,14 +1234,14 @@ const Leopard = (() => {
 
   function registerSystemApps() {
     System.registerApp({
-      id: 'dashboard', name: 'Dashboard', icon: glyph('dashboard'), open: openDashboard,
-      about: 'Leopard 的小组件层，包含时钟、日历、天气、计算器和便笺。',
-      keywords: 'dashboard widgets 小组件 仪表盘',
+      id: 'dashboard', name: t('app.dashboard'), icon: glyph('dashboard'), open: openDashboard,
+      about: t('ui.98c7d400da1c'),
+      keywords: t('ui.2e671e65cb29'),
     });
     System.registerApp({
-      id: 'timemachine', name: 'Time Machine', icon: glyph('timemachine'), open: openTimeMachine,
-      about: '使用浏览器本地快照备份和恢复虚拟文件系统。',
-      keywords: 'time machine backup restore 备份 恢复',
+      id: 'timemachine', name: t('app.timemachine'), icon: glyph('timemachine'), open: openTimeMachine,
+      about: t('ui.a7ef7c04543f'),
+      keywords: t('ui.c7f2efa314dc'),
     });
   }
 
@@ -1207,12 +1260,12 @@ const Leopard = (() => {
     });
     try {
       const pref = JSON.parse(localStorage.getItem('macweb.pref.timemachine') || '{}');
-      if (pref.enabled !== false) state.backupTimer = setInterval(() => saveSnapshot('每小时备份'), 3600000);
+      if (pref.enabled !== false) state.backupTimer = setInterval(() => saveSnapshot(t('ui.f299f4dea633')), 3600000);
     } catch (e) {
-      state.backupTimer = setInterval(() => saveSnapshot('每小时备份'), 3600000);
+      state.backupTimer = setInterval(() => saveSnapshot(t('ui.f299f4dea633')), 3600000);
     }
     sampleDisplayRefreshRate();
-    System.syslog('Leopard 扩展服务已启动：Spaces / Dashboard / Time Machine / Quick Look / Stacks', 'launchd');
+    System.syslog(t('ui.c8db5e20f3ee'), 'launchd');
   }
 
   function sampleDisplayRefreshRate() {
@@ -1230,7 +1283,7 @@ const Leopard = (() => {
       const hz = Math.max(30, Math.min(240, Math.round(1000 / median)));
       document.documentElement.style.setProperty('--display-hz', String(hz));
       document.documentElement.dataset.refreshRate = String(hz);
-      System.syslog(`显示刷新率采样约 ${hz} Hz；动画使用 requestAnimationFrame 同步`, 'WindowServer');
+      System.syslog(t('mb.syslog.refresh', { hz }), 'WindowServer');
     };
     requestAnimationFrame(sample);
   }
@@ -1240,8 +1293,10 @@ const Leopard = (() => {
   return {
     init, glyph, quickLook, openDashboard, closeDashboard, showSpaces, switchSpace,
     openTimeMachine, closeTimeMachine, setKeyboardCapture, settings, saveSettings,
-    saveSnapshot, toast, startStarfield, showShortcutHelp, syncMenuExtras,
+    saveSnapshot, toast, startStarfield, showShortcutHelp, syncMenuExtras, refreshStatusChrome,
     get currentSpace() { return state.currentSpace; },
     get captured() { return state.capture; },
   };
 })();
+
+export { Leopard };

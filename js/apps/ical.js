@@ -1,13 +1,19 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // iCal — month view calendar with events in localStorage
 (() => {
   const { el } = System;
   const KEY = 'macweb.ical.v1';
 
-  const icon = `<svg viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="50" rx="6" fill="#fff" stroke="#8a8a8a" stroke-width="1.5"/><path d="M8 14 q0-6 6-6 h36 q6 0 6 6 v10 H8z" fill="#f04a3a"/><text x="32" y="20" text-anchor="middle" font-family="'Lucida Grande', sans-serif" font-size="10" fill="#fff" font-weight="bold">7月</text><text x="32" y="48" text-anchor="middle" font-family="'Lucida Grande', sans-serif" font-size="22" fill="#333" font-weight="bold">27</text></svg>`;
+  const icon = `<svg viewBox="0 0 64 64"><rect x="8" y="8" width="48" height="50" rx="6" fill="#fff" stroke="#8a8a8a" stroke-width="1.5"/><path d="M8 14 q0-6 6-6 h36 q6 0 6 6 v10 H8z" fill="#f04a3a"/><text x="32" y="20" text-anchor="middle" font-family="Lucida Grande, sans-serif" font-size="10" fill="#fff" font-weight="bold">${t('app.ical3.b7a9525531e9')}</text><text x="32" y="48" text-anchor="middle" font-family="Lucida Grande, sans-serif" font-size="22" fill="#333" font-weight="bold">27</text></svg>`;
 
   const DEFAULT_CALENDARS = [
-    { id:'home', name:'个人', color:'#4e8fd4', visible:true, builtIn:true },
-    { id:'work', name:'工作', color:'#df5b51', visible:true, builtIn:true },
+    { id:'home', name:t('ui.2d7c0c32a376'), color:'#4e8fd4', visible:true, builtIn:true },
+    { id:'work', name:t('app.ical.da32b888f1'), color:'#df5b51', visible:true, builtIn:true },
   ];
   function load() {
     let raw = {};
@@ -43,7 +49,7 @@
     const title = el('div', 'ical-title');
     const nav = el('div', 'ical-nav');
     const prev = el('button', 'finder-toolbar-btn', '◀');
-    const today = el('button', 'finder-toolbar-btn', '今天');
+    const today = el('button', 'finder-toolbar-btn', t('ui.17e83cc25e22'));
     const next = el('button', 'finder-toolbar-btn', '▶');
     nav.append(prev, today, next);
     head.append(title, nav);
@@ -54,18 +60,18 @@
     function addEvent(k) {
       const form = el('div', 'ical-event-sheet');
       const nameLabel = el('label');
-      nameLabel.append(el('span', '', '事件：'));
+      nameLabel.append(el('span', '', t('app.ical.508ffaee36')));
       const nameInput = el('input', 'aqua-input');
-      nameInput.placeholder = '新事件';
+      nameInput.placeholder = t('app.ical.e3e709e9ed');
       nameLabel.appendChild(nameInput);
       const timeLabel = el('label');
-      timeLabel.append(el('span', '', '时间：'));
+      timeLabel.append(el('span', '', t('app.ical.6ada8713cf')));
       const timeInput = el('input', 'aqua-input');
       timeInput.type = 'time';
       timeInput.value = `${String(Number(preferences.dayStarts) || 8).padStart(2, '0')}:00`;
       timeLabel.appendChild(timeInput);
       const calendarLabel = el('label');
-      calendarLabel.append(el('span', '', '日历：'));
+      calendarLabel.append(el('span', '', t('app.ical.f165ac3c93')));
       const calendarSelect = el('select', 'aqua-select');
       state.calendars.forEach((calendar) => {
         const option = el('option', '', calendar.name);
@@ -74,13 +80,13 @@
         calendarSelect.appendChild(option);
       });
       calendarLabel.appendChild(calendarSelect);
-      const hint = el('p', '', `${k} · ${preferences.timeZoneSupport === false ? '本地时间' : Intl.DateTimeFormat().resolvedOptions().timeZone}`);
+      const hint = el('p', '', `${k} · ${preferences.timeZoneSupport === false ? t('app.ical2.e8d6021c3817') : Intl.DateTimeFormat().resolvedOptions().timeZone}`);
       form.append(nameLabel, timeLabel, calendarLabel, hint);
       System.showSheet({
-        parent:win, title:'新建事件', content:form, initialFocus:nameInput,
+        parent:win, title:t('ui.e9bf9a05987e'), content:form, initialFocus:nameInput,
         buttons:[
-          { label:'取消', cancel:true },
-          { label:'添加', default:true, action:() => {
+          { label:t('ui.4d0b4688c787'), cancel:true },
+          { label:t('ui.94191ce210d3'), default:true, action:() => {
             const title = nameInput.value.trim();
             if (!title) {
               nameInput.classList.add('invalid');
@@ -100,7 +106,7 @@
 
     const startDay = () => preferences.weekStarts === 'saturday' ? 6 : preferences.weekStarts === 'sunday' ? 0 : 1;
     const dayLabels = () => {
-      const labels = ['日','一','二','三','四','五','六'];
+      const labels = [t('app.ical2.1c5b6d08b476'),t('app.ical3.d3efd2123c0c'),t('app.ical3.c8f5d554f1dd'),t('app.ical3.7ed0c63b38eb'),t('app.ical3.8f2279f5aa41'),t('app.ical3.f052e8f4da56'),t('app.ical3.a3c072af0a9b')];
       const start = startDay();
       return Array.from({ length:7 }, (_, index) => labels[(start + index) % 7]);
     };
@@ -121,7 +127,7 @@
         .map((contact) => ({ title:`🎂 ${contact.last || ''}${contact.first || ''}`, birthday:true }));
     };
     const renderCalendars = () => {
-      sidebar.innerHTML = '<h4>日历</h4><div class="ical-calendar-list"></div><footer><button class="aqua-btn ical-add-calendar" title="新建日历">＋</button><button class="aqua-btn ical-remove-calendar" title="删除日历">－</button></footer>';
+      sidebar.innerHTML = `<h4>${t('app.ical.01bef11b7e')}</h4><div class="ical-calendar-list"></div><footer><button class="aqua-btn ical-add-calendar" title="${t('app.ical2.8efc49e6a59f')}">＋</button><button class="aqua-btn ical-remove-calendar" title="${t('app.ical2.160d74c44738')}">－</button></footer>`;
       const list = sidebar.querySelector('.ical-calendar-list');
       state.calendars.forEach((calendar) => {
         const row = el('label', calendar.id === selectedCalendar ? 'sel' : '');
@@ -146,10 +152,10 @@
       sidebar.querySelector('.ical-remove-calendar').addEventListener('click', removeCalendar);
     };
     function render() {
-      title.textContent = `${year} 年 ${month + 1} 月`;
+      title.textContent = t('app.ical.ym', { y: year, m: month + 1 });
       grid.innerHTML = '';
       grid.classList.toggle('show-week-numbers', !!preferences.showWeekNumbers);
-      if (preferences.showWeekNumbers) grid.appendChild(el('div', 'ical-dow ical-week-head', '周'));
+      if (preferences.showWeekNumbers) grid.appendChild(el('div', 'ical-dow ical-week-head', t('app.ical2.e6bacd7b4204')));
       dayLabels().forEach((d) => grid.appendChild(el('div', 'ical-dow', d)));
       const first = new Date(year, month, 1);
       const offset = (first.getDay() - startDay() + 7) % 7;
@@ -177,12 +183,12 @@
             evEl.textContent = `${event.time ? `${event.time} ` : ''}${event.title}`;
             const calendar = calendarFor(event.calendarId);
             if (!event.birthday && calendar?.color) evEl.style.setProperty('--ical-event-color', calendar.color);
-            evEl.title = event.birthday ? '通讯录生日' : '双击删除';
+            evEl.title = event.birthday ? t('ui.badc439a4cd7') : t('ui.dd4c7d27bd5e');
             if (!event.birthday) evEl.addEventListener('dblclick', (e) => {
               e.stopPropagation();
               System.confirmSheet({
-                parent:win, headline:`删除事件“${event.title}”？`, message:`${k}${event.time ? ` ${event.time}` : ''}`,
-                okLabel:'删除', danger:true, onOK:() => {
+                parent:win, headline:`${t('app.ical4.c8aafebaece2')}“${event.title}”？`, message:`${k}${event.time ? ` ${event.time}` : ''}`,
+                okLabel:t('ui.3755f56f2f83'), danger:true, onOK:() => {
                   state.events[k] = (state.events[k] || []).filter((item) => item.id !== event.id);
                   if (!state.events[k].length) delete state.events[k];
                   save(state); render();
@@ -202,15 +208,15 @@
       renderCalendars();
       if (win?._status) {
         const count = Object.values(state.events).reduce((sum, entries) => sum + entries.length, 0);
-        const zone = preferences.timeZoneSupport === false ? '本地时间' : Intl.DateTimeFormat().resolvedOptions().timeZone;
-        win._status.textContent = `${count} 个事件 · ${zone} · 双击日期添加`;
+        const zone = preferences.timeZoneSupport === false ? t('app.ical2.e8d6021c3817') : Intl.DateTimeFormat().resolvedOptions().timeZone;
+        win._status.textContent = `${count}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')} · ${zone} · ${t('app.ical4.c904e7b9bc14')}`;
       }
     }
     function keyOf(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
     function createCalendar() {
       System.promptSheet({
-        parent:win,title:'新建日历',message:'日历名称：',value:'未命名日历',okLabel:'创建',
-        validate:name=>state.calendars.some((calendar)=>calendar.name.toLowerCase()===name.toLowerCase())?'已经存在同名日历。':true,
+        parent:win,title:t('ui.1f2d05026924'),message:t('ui.a39dd400d314'),value:t('app.ical.4038d0165a'),okLabel:t('ui.fcbd0932929e'),
+        validate:name=>state.calendars.some((calendar)=>calendar.name.toLowerCase()===name.toLowerCase())?t('ui.4848676d0b8a'):true,
         onOK:name=>{
           const palette=['#7d62b3','#e18c3b','#3ca66a','#cc5b91'];
           const calendar={id:`calendar-${Date.now()}`,name,color:palette[state.calendars.length%palette.length],visible:true};
@@ -221,12 +227,12 @@
     function removeCalendar() {
       const calendar=calendarFor(selectedCalendar);
       if (!calendar || calendar.builtIn) {
-        Leopard.toast('iCal','内建日历不能删除。');
+        Leopard.toast('iCal',t('ui.f29698d08c17'));
         return;
       }
       System.confirmSheet({
-        parent:win,headline:`删除日历“${calendar.name}”？`,message:'其中的事件会移到“个人”日历。',
-        okLabel:'删除',danger:true,onOK:()=>{
+        parent:win,headline:`${t('app.ical3.dadc57fd22c8')}“${calendar.name}”？`,message:t('ui.aa839b4fe59c'),
+        okLabel:t('ui.3755f56f2f83'),danger:true,onOK:()=>{
           Object.values(state.events).forEach((entries)=>entries.forEach((event)=>{if(event.calendarId===calendar.id)event.calendarId='home';}));
           state.calendars=state.calendars.filter((item)=>item.id!==calendar.id);
           selectedCalendar='home';save(state);render();
@@ -236,9 +242,9 @@
     function showEventInfo() {
       const entries=(state.events[selectedDate]||[]).filter((event)=>calendarFor(event.calendarId)?.visible!==false);
       const pane=el('div','ical-event-info');
-      pane.innerHTML=`<header><b>${selectedDate}</b><span>${entries.length} 个事件</span></header><main>${entries.map((event)=>`<article><i style="background:${calendarFor(event.calendarId)?.color||'#4e8fd4'}"></i><div><b>${event.time?`${event.time} `:''}${event.title}</b><small>${calendarFor(event.calendarId)?.name||'个人'}</small></div></article>`).join('')||'<p>这一天没有事件。</p>'}</main>`;
+      pane.innerHTML=`<header><b>${selectedDate}</b><span>${entries.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}</span></header><main>${entries.map((event)=>`<article><i style="background:${calendarFor(event.calendarId)?.color||'#4e8fd4'}"></i><div><b>${event.time?`${event.time} `:''}${event.title}</b><small>${calendarFor(event.calendarId)?.name||t('ui.2d7c0c32a376')}</small></div></article>`).join('')||`<p>${t('app.ical2.d2400783d6a1')}</p>`}</main>`;
       System.createWindow({
-        app:'ical', title:'事件简介', width:360, height:300, content:pane,
+        app:'ical', title:t('app.ical3.2d5ed7d7161b'), width:360, height:300, content:pane,
         noResize:true, bodyBg:'#ececec',
         autoFitContent:{ minHeight:250, maxHeight:480 },
       });
@@ -254,7 +260,7 @@
       render();
     };
     document.addEventListener('app-preferences-changed',preferencesChanged);
-    win = System.createWindow({ app: 'ical', title: 'iCal', width: 780, height: 530, content: shell, statusbar: '正在载入日历…', onClose:()=>{
+    win = System.createWindow({ app: 'ical', title: 'iCal', width: 780, height: 530, content: shell, statusbar: t('app.ical3.9d74c2b0dcf7'), onClose:()=>{
       document.removeEventListener('app-preferences-changed',preferencesChanged);
       return true;
     }});
@@ -275,8 +281,8 @@
 
   System.registerApp({
     id: 'ical', name: 'iCal', icon, open,
-    about: '月视图日历。双击格子添加日程，双击日程删除，数据本地保存。',
-    keywords: 'ical calendar 日历 日程',
+    about: t('ui.120d728b2731'),
+    keywords: t('ui.3a6dee8bdd90'),
   });
 })();
 
@@ -288,10 +294,10 @@
   const STORE_KEY = 'macweb.ical.v1';
   const MAIL_KEY = 'macweb.mail.v1';
   const HOUR_HEIGHT = 46;
-  const iCalIcon = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ical3-paper" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e8e8e8"/></linearGradient><linearGradient id="ical3-red" x2="0" y2="1"><stop stop-color="#ff7165"/><stop offset="1" stop-color="#c52a24"/></linearGradient><filter id="ical3-shadow"><feDropShadow dy="2" stdDeviation="1.3" flood-opacity=".4"/></filter></defs><g filter="url(#ical3-shadow)"><rect x="7" y="6" width="50" height="52" rx="6" fill="url(#ical3-paper)" stroke="#777"/><path d="M7 13q0-7 7-7h36q7 0 7 7v11H7z" fill="url(#ical3-red)" stroke="#a91f1a"/><path d="M8 24h48" stroke="#aaa"/><text x="32" y="19" text-anchor="middle" font-family="Lucida Grande,sans-serif" font-size="10" font-weight="bold" fill="#fff">7月</text><text x="32" y="49" text-anchor="middle" font-family="Helvetica Neue,sans-serif" font-size="25" font-weight="bold" fill="#333">27</text><path d="M13 10h38" stroke="#fff" stroke-opacity=".45"/></g></svg>`;
+  const iCalIcon = `<svg viewBox="0 0 64 64" aria-hidden="true"><defs><linearGradient id="ical3-paper" x2="0" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#e8e8e8"/></linearGradient><linearGradient id="ical3-red" x2="0" y2="1"><stop stop-color="#ff7165"/><stop offset="1" stop-color="#c52a24"/></linearGradient><filter id="ical3-shadow"><feDropShadow dy="2" stdDeviation="1.3" flood-opacity=".4"/></filter></defs><g filter="url(#ical3-shadow)"><rect x="7" y="6" width="50" height="52" rx="6" fill="url(#ical3-paper)" stroke="#777"/><path d="M7 13q0-7 7-7h36q7 0 7 7v11H7z" fill="url(#ical3-red)" stroke="#a91f1a"/><path d="M8 24h48" stroke="#aaa"/><text x="32" y="19" text-anchor="middle" font-family="Lucida Grande, sans-serif" font-size="10" font-weight="bold" fill="#fff">${t('app.ical3.b7a9525531e9')}</text><text x="32" y="49" text-anchor="middle" font-family="Helvetica Neue,sans-serif" font-size="25" font-weight="bold" fill="#333">27</text><path d="M13 10h38" stroke="#fff" stroke-opacity=".45"/></g></svg>`;
   const DEFAULT_CALENDARS = [
-    { id:'home', name:'个人', color:'#4f8fd4', visible:true, builtIn:true, account:'onmy' },
-    { id:'work', name:'工作', color:'#d75b50', visible:true, builtIn:true, account:'onmy' },
+    { id:'home', name:t('ui.2d7c0c32a376'), color:'#4f8fd4', visible:true, builtIn:true, account:'onmy' },
+    { id:'work', name:t('app.ical.da32b888f1'), color:'#d75b50', visible:true, builtIn:true, account:'onmy' },
   ];
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
     '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
@@ -324,7 +330,7 @@
     const endMinutes = Math.min(1439,timeMinutes(start)+Math.max(15,Number(event?.durationMinutes)||60));
     return {
       id:String(event?.id || eventId()),
-      title:String(event?.title || '新事件'),
+      title:String(event?.title || t('app.ical.e3e709e9ed')),
       date:String(event?.date || dateKey),
       endDate:String(event?.endDate || event?.date || dateKey),
       start,
@@ -343,14 +349,14 @@
     };
   };
   const defaultTodos = () => [
-    { id:eventId(), title:'检查 Leopard 完成度', due:keyOf(new Date()), calendarId:'work', done:false, priority:'medium', notes:'' },
+    { id:eventId(), title:t('ui.ab67afc9e2f9'), due:keyOf(new Date()), calendarId:'work', done:false, priority:'medium', notes:'' },
   ];
   function readMailTodos() {
     try {
       const data=JSON.parse(localStorage.getItem(MAIL_KEY)||'null');
       if(!Array.isArray(data?.todos))return [];
       return data.todos.map(item=>({
-        id:String(item.id||eventId()), title:String(item.title||'待办事项'), due:String(item.due||''),
+        id:String(item.id||eventId()), title:String(item.title||t('ui.23f017bf5795')), due:String(item.due||''),
         calendarId:String(item.calendarId||'home'), done:!!item.done,
         priority:['high','medium','low','none'].includes(item.priority)?item.priority:'none',
         notes:String(item.notes||''),
@@ -362,7 +368,7 @@
     try { raw=JSON.parse(localStorage.getItem(STORE_KEY)||'{}')||{}; } catch(error){}
     const calendars=Array.isArray(raw.calendars)&&raw.calendars.length
       ? raw.calendars.map((calendar,index)=>({
-        id:String(calendar.id||`calendar-${index}`),name:String(calendar.name||`日历 ${index+1}`),
+        id:String(calendar.id||`calendar-${index}`),name:String(calendar.name||`${t('app.ical4.dd88a5345f96')} ${index+1}`),
         color:String(calendar.color||'#4f8fd4'),visible:calendar.visible!==false,
         builtIn:!!calendar.builtIn,account:String(calendar.account||'onmy'),
         subscribed:!!calendar.subscribed,readOnly:!!calendar.readOnly,url:String(calendar.url||''),
@@ -377,7 +383,7 @@
     const mailTodos=readMailTodos();
     const todos=Array.isArray(raw.todos)
       ? raw.todos.map(item=>({
-        id:String(item.id||eventId()),title:String(item.title||'待办事项'),due:String(item.due||''),
+        id:String(item.id||eventId()),title:String(item.title||t('ui.23f017bf5795')),due:String(item.due||''),
         calendarId:String(item.calendarId||'home'),done:!!item.done,
         priority:['high','medium','low','none'].includes(item.priority)?item.priority:'none',
         notes:String(item.notes||''),
@@ -408,21 +414,21 @@
     const toolbar=el('div','ical3-toolbar');
     const nav=el('div','ical3-nav');
     const previous=el('button','finder-toolbar-btn','◀');
-    previous.title='上一个';
-    const today=el('button','finder-toolbar-btn','今天');
+    previous.title=t('ui.57b27163cee2');
+    const today=el('button','finder-toolbar-btn',t('ui.17e83cc25e22'));
     const next=el('button','finder-toolbar-btn','▶');
-    next.title='下一个';
+    next.title=t('ui.159a87b9e07f');
     nav.append(previous,today,next);
     const viewButtons=el('div','ical3-view-switch');
-    [['day','日'],['week','周'],['month','月']].forEach(([id,label])=>{
+    [['day',t('app.ical2.1c5b6d08b476')],['week',t('app.ical2.e6bacd7b4204')],['month',t('app.ical2.80170c1f6d62')]].forEach(([id,label])=>{
       const button=el('button','',label);button.dataset.view=id;viewButtons.appendChild(button);
     });
-    const createButton=el('button','finder-toolbar-btn ical3-create','＋ 新事件');
-    const todoButton=el('button','finder-toolbar-btn ical3-todo-toggle','✓ 待办事项');
+    const createButton=el('button','finder-toolbar-btn ical3-create',t('app.ical3.6ba3c11c7640'));
+    const todoButton=el('button','finder-toolbar-btn ical3-todo-toggle',t('ui.0aed359fba63'));
     const spacer=el('i','ical3-toolbar-spacer');
     const search=el('input','aqua-input aqua-search ical3-search');
-    search.placeholder='搜索 iCal';
-    search.setAttribute('aria-label','搜索 iCal');
+    search.placeholder=t('ui.9618bdec8530');
+    search.setAttribute('aria-label',t('ui.9618bdec8530'));
     toolbar.append(nav,viewButtons,createButton,todoButton,spacer,search);
 
     const root=el('div','ical3-app');
@@ -434,7 +440,7 @@
     const subtitle=el('span');
     titleWrap.append(title,subtitle);
     const headerAction=el('button','aqua-btn ical3-header-add','＋');
-    headerAction.title='在所选日期新建事件';
+    headerAction.title=t('ui.b63884dae13b');
     centerHeader.append(titleWrap,headerAction);
     const viewHost=el('section','ical3-view-host');
     center.append(centerHeader,viewHost);
@@ -462,7 +468,7 @@
       return result;
     };
     const weekdayLabels=()=>{
-      const labels=['日','一','二','三','四','五','六'];
+      const labels=[t('app.ical2.1c5b6d08b476'),t('app.ical3.d3efd2123c0c'),t('app.ical3.c8f5d554f1dd'),t('app.ical3.7ed0c63b38eb'),t('app.ical3.8f2279f5aa41'),t('app.ical3.f052e8f4da56'),t('app.ical3.a3c072af0a9b')];
       const start=startDayIndex();
       return Array.from({length:7},(_,index)=>labels[(start+index)%7]);
     };
@@ -494,7 +500,7 @@
       try {contacts=JSON.parse(localStorage.getItem('macweb.addressbook.v1')||'[]')||[];}catch(error){}
       const monthDay=dateKey.slice(5);
       return contacts.filter(contact=>String(contact.birthday||'').slice(-5)===monthDay).map(contact=>({
-        event:{id:`birthday-${contact.id||contact.first||contact.last}`,title:`${contact.last||''}${contact.first||''}的生日`,allDay:true,birthday:true,calendarId:'birthdays',repeat:'yearly',location:'',notes:'来自通讯录',attendees:[],attachments:[]},
+        event:{id:`birthday-${contact.id||contact.first||contact.last}`,title:`${contact.last||''}${contact.first||''}${t('app.ical3.b14950fdc574')}`,allDay:true,birthday:true,calendarId:'birthdays',repeat:'yearly',location:'',notes:t('ui.af341b85892c'),attendees:[],attachments:[]},
         base:dateKey,occurrence:dateKey,
       }));
     };
@@ -511,7 +517,7 @@
       year:options.year===false?undefined:'numeric',month:options.short?'short':'long',day:'numeric',weekday:options.weekday===false?undefined:'long',
     });
     const eventTimeLabel=(event,occurrence)=>{
-      if(event.allDay)return `${dateLabel(occurrence)} · 全天`;
+      if(event.allDay)return `${dateLabel(occurrence)} · ${t('app.ical3.b613f38927a1')}`;
       return `${dateLabel(occurrence)} · ${event.start}–${event.end}`;
     };
     const closePopover=()=>{
@@ -545,14 +551,14 @@
       const calendar=calendarFor(event.calendarId);
       popover=el('section','ical3-event-popover');
       popover.style.setProperty('--ical-popover-color',colorForEvent(event));
-      popover.innerHTML=`<header><i></i><div><h2>${escapeHtml(event.title)}</h2><span>${escapeHtml(calendar?.name||'个人')}</span></div><button aria-label="关闭">×</button></header>
-        <dl><dt>时间</dt><dd>${escapeHtml(eventTimeLabel(event,occurrence))}${event.repeat!=='none'?`<small>重复：${({daily:'每天',weekly:'每周',monthly:'每月',yearly:'每年'})[event.repeat]}</small>`:''}</dd>
-        ${event.location?`<dt>地点</dt><dd>${escapeHtml(event.location)}</dd>`:''}
-        <dt>提醒</dt><dd>${escapeHtml(({none:'无', 'at-time':'事件开始时','5m':'提前 5 分钟','15m':'提前 15 分钟','1h':'提前 1 小时','1d':'提前 1 天'})[event.alarm]||'无')}</dd>
-        ${event.attendees.length?`<dt>受邀人</dt><dd>${event.attendees.map(escapeHtml).join('<br>')}</dd>`:''}
-        ${event.attachments.length?`<dt>附件</dt><dd class="ical3-popover-attachments">${event.attachments.map(path=>`<button data-attachment="${escapeHtml(path)}">${escapeHtml(VFS.baseName(path))}</button>`).join('')}</dd>`:''}
-        ${event.notes?`<dt>备注</dt><dd>${escapeHtml(event.notes).replace(/\n/g,'<br>')}</dd>`:''}</dl>
-        <footer><button class="aqua-btn" data-event-action="availability" ${event.attendees.length?'':'disabled'}>可用性…</button><i></i><button class="aqua-btn" data-event-action="delete">删除</button><button class="aqua-btn default" data-event-action="edit">编辑</button></footer>`;
+      popover.innerHTML=`<header><i></i><div><h2>${escapeHtml(event.title)}</h2><span>${escapeHtml(calendar?.name||t('ui.2d7c0c32a376'))}</span></div><button aria-label="${t('ui.6c14bd7f6f9e')}">×</button></header>
+        <dl><dt>${t('app.ical3.ba2e18c04446')}</dt><dd>${escapeHtml(eventTimeLabel(event,occurrence))}${event.repeat!=='none'?`<small>${t('app.ical3.39999155acd2')}${({daily:t('app.ical.3062ae896c'),weekly:t('app.ical.cf0b1f336a'),monthly:t('app.ical.4f3a2c8b07'),yearly:t('app.ical.3231a84f04')})[event.repeat]}</small>`:''}</dd>
+        ${event.location?`<dt>${t('app.ical3.5a3eddc05a65')}</dt><dd>${escapeHtml(event.location)}</dd>`:''}
+        <dt>${t('app.ical3.85a769d9e65f')}</dt><dd>${escapeHtml(({none:t('ui.72077749f794'), 'at-time':t('app.ical.1236644ee4'),'5m':t('app.ical.64f9374c19'),'15m':t('app.ical.26694a75f8'),'1h':t('app.ical.79f6e98c46'),'1d':t('app.ical.4197ca2fab')})[event.alarm]||t('ui.72077749f794'))}</dd>
+        ${event.attendees.length?`<dt>${t('app.ical3.6721476daca2')}</dt><dd>${event.attendees.map(escapeHtml).join('<br>')}</dd>`:''}
+        ${event.attachments.length?`<dt>${t('app.ical3.9b5c10af3e47')}</dt><dd class="ical3-popover-attachments">${event.attachments.map(path=>`<button data-attachment="${escapeHtml(path)}">${escapeHtml(VFS.baseName(path))}</button>`).join('')}</dd>`:''}
+        ${event.notes?`<dt>${t('app.ical3.6c29a930df1e')}</dt><dd>${escapeHtml(event.notes).replace(/\n/g,'<br>')}</dd>`:''}</dl>
+        <footer><button class="aqua-btn" data-event-action="availability" ${event.attendees.length?'':'disabled'}>${t('app.ical4.1d2143e862a4')}</button><i></i><button class="aqua-btn" data-event-action="delete">${t('app.ical.552404acb2')}</button><button class="aqua-btn default" data-event-action="edit">${t('app.ical4.0a748b72673b')}</button></footer>`;
       center.appendChild(popover);
       center.classList.add('popover-open');
       const anchorRect=anchor.getBoundingClientRect();
@@ -603,11 +609,11 @@
     };
 
     function renderSidebar(){
-      sidebar.innerHTML='<header><b>日历</b><button class="ical3-sidebar-hide" title="隐藏日历列表">◀</button></header><div class="ical3-calendar-groups"></div><footer><button data-calendar-action="add" title="新建日历">＋</button><button data-calendar-action="remove" title="删除日历">－</button><i></i><button data-calendar-action="menu" title="日历操作">⚙</button></footer>';
+      sidebar.innerHTML=`<header><b>${t('app.ical.01bef11b7e')}</b><button class="ical3-sidebar-hide" title="${t('app.ical4.7c67baf90176')}">◀</button></header><div class="ical3-calendar-groups"></div><footer><button data-calendar-action="add" title="${t('app.ical2.8efc49e6a59f')}">＋</button><button data-calendar-action="remove" title="${t('app.ical2.160d74c44738')}">－</button><i></i><button data-calendar-action="menu" title="${t('app.ical3.3a7192f5bc34')}">⚙</button></footer>`;
       const groups=sidebar.querySelector('.ical3-calendar-groups');
       const grouped=new Map();
       state.calendars.forEach(calendar=>{
-        const group=calendar.account==='subscriptions'?'订阅':calendar.account==='workgroup'?'工作组':'在我的 Mac 上';
+        const group=calendar.account==='subscriptions'?t('app.ical.a34156b1c8'):calendar.account==='workgroup'?t('app.ical.5aec92894a'):t('ui.f862e137a6e7');
         if(!grouped.has(group))grouped.set(group,[]);
         grouped.get(group).push(calendar);
       });
@@ -617,7 +623,7 @@
         calendars.forEach(calendar=>{
           const row=el('label',calendar.id===selectedCalendar?'selected':'');
           row.dataset.calendarId=calendar.id;
-          row.innerHTML=`<input type="checkbox" ${calendar.visible!==false?'checked':''}><i style="--calendar-color:${escapeHtml(calendar.color)}"></i><span>${escapeHtml(calendar.name)}</span>${calendar.subscribed?'<em title="已订阅">⌁</em>':''}`;
+          row.innerHTML=`<input type="checkbox" ${calendar.visible!==false?'checked':''}><i style="--calendar-color:${escapeHtml(calendar.color)}"></i><span>${escapeHtml(calendar.name)}</span>${calendar.subscribed?`<em title="${t('app.ical3.b914a95335a3')}">⌁</em>`:''}`;
           row.querySelector('input').addEventListener('click',event=>event.stopPropagation());
           row.querySelector('input').addEventListener('change',event=>{
             calendar.visible=event.target.checked;persist();renderView();renderTodos();
@@ -631,22 +637,22 @@
       });
       if(preferences.showBirthdays!==false){
         const birthdays=el('section');
-        birthdays.innerHTML='<h3>其他</h3><label class="ical3-birthday-calendar"><input type="checkbox" checked disabled><i></i><span>生日</span></label>';
+        birthdays.innerHTML=`<h3>${t('app.ical.fe500d527b')}</h3><label class="ical3-birthday-calendar"><input type="checkbox" checked disabled><i></i><span>${t('app.ical3.bd172f28babf')}</span></label>`;
         groups.appendChild(birthdays);
       }
       sidebar.querySelector('[data-calendar-action="add"]').addEventListener('click',createCalendar);
       sidebar.querySelector('[data-calendar-action="remove"]').addEventListener('click',removeCalendar);
       sidebar.querySelector('[data-calendar-action="menu"]').addEventListener('click',event=>System.contextMenu(event,[
-        {label:'新建日历…',action:createCalendar},
-        {label:'订阅日历…',action:subscribeCalendar},
+        {label:t('ui.f5f36b91f325'),action:createCalendar},
+        {label:t('app.ical3.d1b88485982e'),action:subscribeCalendar},
         {sep:true},
-        {label:'导入…',action:importICS},
-        {label:'导出…',action:exportICS},
+        {label:t('app.ical3.076c8c93dcec'),action:importICS},
+        {label:t('app.ical3.f6d73b069ed3'),action:exportICS},
       ]));
       sidebar.querySelector('.ical3-sidebar-hide').addEventListener('click',()=>{
         root.classList.add('calendars-hidden');
         const show=el('button','ical3-show-calendars','▶');
-        show.title='显示日历列表';root.appendChild(show);
+        show.title=t('ui.c95e1ee15eca');root.appendChild(show);
         show.addEventListener('click',()=>{root.classList.remove('calendars-hidden');show.remove();});
       });
     }
@@ -659,7 +665,7 @@
       const monthView=el('div','ical3-month');
       const grid=el('div','ical3-month-grid');
       if(preferences.showWeekNumbers)grid.classList.add('week-numbers');
-      if(preferences.showWeekNumbers)grid.appendChild(el('div','ical3-month-dow week','周'));
+      if(preferences.showWeekNumbers)grid.appendChild(el('div','ical3-month-dow week',t('app.ical2.e6bacd7b4204')));
       weekdayLabels().forEach(label=>grid.appendChild(el('div','ical3-month-dow',label)));
       const todayKey=keyOf(new Date());
       for(let week=0;week<6;week++){
@@ -689,7 +695,7 @@
             attachEventButton(eventButton,item);eventList.appendChild(eventButton);
           });
           if(items.length>4){
-            const more=el('button','ical3-more-events',`还有 ${items.length-4} 个…`);
+            const more=el('button','ical3-more-events',`${t('app.ical4.fd154c6b91f9')} ${items.length-4}${t('app.ical3.6e145efc77b7')}…`);
             more.addEventListener('click',event=>{event.stopPropagation();selectedDate=dateKey;view='day';persist();render();});
             eventList.appendChild(more);
           }
@@ -720,17 +726,17 @@
       const timeline=el('div',`ical3-timeline ${dayCount===1?'day':'week'}`);
       timeline.style.setProperty('--ical-day-count',dayCount);
       const headers=el('div','ical3-timeline-headers');
-      headers.appendChild(el('div','ical3-time-corner',preferences.timeZoneSupport===false?'本地':Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').at(-1)));
+      headers.appendChild(el('div','ical3-time-corner',preferences.timeZoneSupport===false?t('app.ical3.bd3ed8c9a279'):Intl.DateTimeFormat().resolvedOptions().timeZone.split('/').at(-1)));
       dates.forEach(date=>{
         const dateKey=keyOf(date);
         const button=el('button',dateKey===selectedDate?'selected':'');
-        button.innerHTML=`<span>${date.toLocaleDateString('zh-CN',{weekday:'short'})}</span><b>${date.getMonth()+1}月${date.getDate()}日</b>`;
+        button.innerHTML=`<span>${date.toLocaleDateString(undefined,{weekday:'short'})}</span><b>${t('app.ical.md', { m: date.getMonth()+1, d: date.getDate() })}</b>`;
         if(dateKey===keyOf(new Date()))button.classList.add('today');
         button.addEventListener('click',()=>{selectedDate=dateKey;selectedEventId='';persist();renderView();renderTodos();});
         headers.appendChild(button);
       });
       const allDay=el('div','ical3-all-day-row');
-      allDay.appendChild(el('div','ical3-all-day-label','全天'));
+      allDay.appendChild(el('div','ical3-all-day-label',t('app.ical3.b613f38927a1')));
       dates.forEach(date=>{
         const dateKey=keyOf(date);
         const column=el('div','ical3-all-day-column');
@@ -743,7 +749,7 @@
       });
       const scroll=el('div','ical3-timeline-scroll');
       const timeAxis=el('div','ical3-time-axis');
-      for(let hour=0;hour<24;hour++)timeAxis.appendChild(el('div','',hour?`${pad(hour)}:00`:'午夜'));
+      for(let hour=0;hour<24;hour++)timeAxis.appendChild(el('div','',hour?`${pad(hour)}:00`:t('app.ical3.e77500fae914')));
       scroll.appendChild(timeAxis);
       const dayArea=el('div','ical3-time-days');
       dates.forEach(date=>{
@@ -785,21 +791,21 @@
         `${event.title} ${event.location} ${event.notes} ${event.attendees.join(' ')}`.toLocaleLowerCase('zh-CN').includes(normalized));
       const todoMatches=state.todos.filter(todo=>`${todo.title} ${todo.notes}`.toLocaleLowerCase('zh-CN').includes(normalized));
       const results=el('div','ical3-search-results');
-      results.innerHTML=`<header><h2>“${escapeHtml(query)}”的搜索结果</h2><span>${matches.length} 个事件，${todoMatches.length} 个待办事项</span></header>`;
+      results.innerHTML=`<header><h2>“${escapeHtml(query)}”${t('app.ical4.10f76d208df7')}</h2><span>${matches.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}，${todoMatches.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.6791b8ceea4b')}</span></header>`;
       const list=el('div');
       matches.sort((left,right)=>left.base.localeCompare(right.base)||left.event.start.localeCompare(right.event.start)).forEach(item=>{
         const button=el('button','ical3-search-result');
-        button.innerHTML=`<i style="--ical-event-color:${escapeHtml(colorForEvent(item.event))}"></i><span><b>${escapeHtml(item.event.title)}</b><small>${escapeHtml(eventTimeLabel(item.event,item.base))}${item.event.location?` · ${escapeHtml(item.event.location)}`:''}</small></span><em>事件</em>`;
+        button.innerHTML=`<i style="--ical-event-color:${escapeHtml(colorForEvent(item.event))}"></i><span><b>${escapeHtml(item.event.title)}</b><small>${escapeHtml(eventTimeLabel(item.event,item.base))}${item.event.location?` · ${escapeHtml(item.event.location)}`:''}</small></span><em>${t('app.ical4.1c679fff25b1')}</em>`;
         button.addEventListener('click',()=>{query='';search.value='';selectedDate=item.base;selectedEventId=item.event.id;selectedOccurrence=item.base;render();});
         list.appendChild(button);
       });
       todoMatches.forEach(todo=>{
         const button=el('button','ical3-search-result todo');
-        button.innerHTML=`<i></i><span><b>${escapeHtml(todo.title)}</b><small>${todo.due?escapeHtml(dateLabel(todo.due)):'没有到期日'}</small></span><em>待办</em>`;
+        button.innerHTML=`<i></i><span><b>${escapeHtml(todo.title)}</b><small>${todo.due?escapeHtml(dateLabel(todo.due)):t('app.ical3.dec165dc96a0')}</small></span><em>${t('app.ical4.33cc4c675533')}</em>`;
         button.addEventListener('click',()=>openTodoEditor(todo));
         list.appendChild(button);
       });
-      if(!matches.length&&!todoMatches.length)list.innerHTML='<div class="ical3-no-results">没有找到匹配项目。尝试标题、地点、受邀人或备注中的其他词语。</div>';
+      if(!matches.length&&!todoMatches.length)list.innerHTML=`<div class="ical3-no-results">${t('app.ical3.2d07df9fe388')}</div>`;
       results.appendChild(list);viewHost.appendChild(results);
     }
 
@@ -808,41 +814,41 @@
       root.classList.toggle('todos-hidden',!todoVisible);
       viewButtons.querySelectorAll('button').forEach(button=>button.classList.toggle('selected',button.dataset.view===view));
       if(query){
-        title.textContent='搜索结果';subtitle.textContent=`在所有日历中搜索“${query}”`;
+        title.textContent=t('ui.2f17ec14763f');subtitle.textContent=`${t('app.ical4.c5fc2d345109')}“${query}”`;
         renderSearch();updateWindowState();return;
       }
       const selected=dateOf(selectedDate);
       if(view==='month'){
-        title.textContent=`${selected.getFullYear()} 年 ${selected.getMonth()+1} 月`;
-        subtitle.textContent=`${dateLabel(selectedDate,{year:false})} · ${eventsFor(selectedDate).length} 个事件`;
+        title.textContent=t('app.ical.ym', { y: selected.getFullYear(), m: selected.getMonth()+1 });
+        subtitle.textContent=`${dateLabel(selectedDate,{year:false})} · ${eventsFor(selectedDate).length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}`;
         renderMonth();
       }else if(view==='week'){
         const start=startOfWeek(selected),end=addDays(start,6);
         title.textContent=start.getMonth()===end.getMonth()
-          ? `${start.getFullYear()} 年 ${start.getMonth()+1} 月 ${start.getDate()}–${end.getDate()} 日`
-          : `${start.getMonth()+1} 月 ${start.getDate()} 日 – ${end.getMonth()+1} 月 ${end.getDate()} 日`;
-        subtitle.textContent=`周视图 · ${dateLabel(selectedDate,{year:false})}`;
+          ? t('app.ical.rangeSameM', { y: start.getFullYear(), m: start.getMonth()+1, d1: start.getDate(), d2: end.getDate() })
+          : t('app.ical.rangeCross', { m1: start.getMonth()+1, d1: start.getDate(), m2: end.getMonth()+1, d2: end.getDate() });
+        subtitle.textContent=`${t('app.ical4.8bdccb3d292f')} · ${dateLabel(selectedDate,{year:false})}`;
         renderTimeline(7);
       }else{
         title.textContent=dateLabel(selectedDate);
-        subtitle.textContent=`日视图 · ${eventsFor(selectedDate).length} 个事件`;
+        subtitle.textContent=`${t('app.ical4.8939bb545e6c')} · ${eventsFor(selectedDate).length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}`;
         renderTimeline(1);
       }
       openSelectedPopover();updateWindowState();
     }
 
     function renderTodos(){
-      todoPanel.innerHTML='<header><div><b>待办事项</b><span>与 Mail 同步</span></div><button class="ical3-close-todos" title="隐藏待办事项">×</button></header><div class="ical3-todo-list"></div><footer><button class="aqua-btn ical3-new-todo">＋</button><span></span><button class="aqua-btn ical3-clear-todos">清除已完成</button></footer>';
+      todoPanel.innerHTML=`<header><div><b>${t('app.ical4.6791b8ceea4b')}</b><span>${t('app.ical4.0e7fd5b47e62')}</span></div><button class="ical3-close-todos" title="${t('app.ical.55db7400c9')}">×</button></header><div class="ical3-todo-list"></div><footer><button class="aqua-btn ical3-new-todo">＋</button><span></span><button class="aqua-btn ical3-clear-todos">${t('app.ical4.7b833e21a05b')}</button></footer>`;
       const list=todoPanel.querySelector('.ical3-todo-list');
       const items=state.todos.slice().sort((left,right)=>Number(left.done)-Number(right.done)||(left.due||'9999').localeCompare(right.due||'9999'));
-      if(!items.length)list.innerHTML='<div class="ical3-empty-todos"><b>没有待办事项</b><span>点按“＋”添加，项目会同时显示在 Mail 中。</span></div>';
+      if(!items.length)list.innerHTML=`<div class="ical3-empty-todos"><b>${t('app.ical3.3802115f07ae')}</b><span>${t('app.ical3.54e768d16b0d')}</span></div>`;
       items.forEach(todo=>{
         const row=el('article',todo.done?'done':'');
         row.dataset.todoId=todo.id;
         const checkbox=document.createElement('input');checkbox.type='checkbox';checkbox.checked=todo.done;
         const body=el('button','ical3-todo-body');
         const calendar=calendarFor(todo.calendarId);
-        body.innerHTML=`<b>${escapeHtml(todo.title)}</b><small>${todo.due?escapeHtml(dateLabel(todo.due,{year:false})):'没有到期日'} · ${escapeHtml(calendar?.name||'个人')}</small>`;
+        body.innerHTML=`<b>${escapeHtml(todo.title)}</b><small>${todo.due?escapeHtml(dateLabel(todo.due,{year:false})):t('app.ical3.dec165dc96a0')} · ${escapeHtml(calendar?.name||t('ui.2d7c0c32a376'))}</small>`;
         const priority=el('i',`ical3-priority ${todo.priority||'none'}`,todo.priority==='high'?'!!!':todo.priority==='medium'?'!!':todo.priority==='low'?'!':'');
         checkbox.addEventListener('change',()=>{todo.done=checkbox.checked;persist();renderTodos();});
         body.addEventListener('click',()=>openTodoEditor(todo));
@@ -852,8 +858,8 @@
       todoPanel.querySelector('.ical3-new-todo').addEventListener('click',()=>openTodoEditor());
       todoPanel.querySelector('.ical3-clear-todos').addEventListener('click',()=>{
         const completed=state.todos.filter(todo=>todo.done).length;
-        if(!completed){Leopard.toast('iCal','没有已完成的待办事项。');return;}
-        System.confirmSheet({parent:win,headline:`清除 ${completed} 个已完成的待办事项？`,message:'这些项目也会从 Mail 的待办事项中移除。',okLabel:'清除',danger:true,onOK:()=>{
+        if(!completed){Leopard.toast('iCal',t('ui.347fd8f178c5'));return;}
+        System.confirmSheet({parent:win,headline:`${t('app.ical4.315b98050818')} ${completed}${t('app.ical3.6e145efc77b7')}${t('app.ical4.b2c76b7b9fa9')}？`,message:t('ui.b7e8415450df'),okLabel:t('ui.7b15e5e8e7bd'),danger:true,onOK:()=>{
           state.todos=state.todos.filter(todo=>!todo.done);persist();renderTodos();
         }});
       });
@@ -864,7 +870,7 @@
       root.classList.toggle('todos-hidden',!todoVisible);
       todoButton.classList.toggle('active',todoVisible);
       const eventCount=allStoredEvents().length;
-      if(win?._status)win._status.textContent=`${eventCount} 个事件 · ${state.todos.filter(todo=>!todo.done).length} 个未完成待办 · ${preferences.timeZoneSupport===false?'本地时间':Intl.DateTimeFormat().resolvedOptions().timeZone}`;
+      if(win?._status)win._status.textContent=t('app.ical.status2',{events:eventCount,todos:state.todos.filter(todo=>!todo.done).length});
       updateWindowState();
     }
 
@@ -892,20 +898,20 @@
       },occurrence);
       const form=el('div','ical3-event-editor');
       const calendarOptions=state.calendars.filter(calendar=>!calendar.readOnly).map(calendar=>`<option value="${escapeHtml(calendar.id)}" ${calendar.id===draft.calendarId?'selected':''}>${escapeHtml(calendar.name)}</option>`).join('');
-      form.innerHTML=`<div class="ical3-event-editor-title"><i style="--calendar-color:${escapeHtml(colorForEvent(draft))}"></i><input class="aqua-input" name="title" value="${escapeHtml(draft.title)}" placeholder="新事件"></div>
+      form.innerHTML=`<div class="ical3-event-editor-title"><i style="--calendar-color:${escapeHtml(colorForEvent(draft))}"></i><input class="aqua-input" name="title" value="${escapeHtml(draft.title)}" placeholder="${t('app.ical.e3e709e9ed')}"></div>
         <div class="ical3-event-form">
-          <label><span>地点：</span><input class="aqua-input" name="location" value="${escapeHtml(draft.location)}" placeholder="可选"></label>
-          <label><span>日历：</span><select class="aqua-select" name="calendarId">${calendarOptions}</select></label>
-          <label class="ical3-all-day-control"><span></span><input type="checkbox" name="allDay" ${draft.allDay?'checked':''}> 全天事件</label>
-          <label><span>开始：</span><div class="ical3-date-time"><input class="aqua-input" type="date" name="date" value="${escapeHtml(draft.date)}"><input class="aqua-input" type="time" name="start" value="${escapeHtml(draft.start)}"></div></label>
-          <label><span>结束：</span><div class="ical3-date-time"><input class="aqua-input" type="date" name="endDate" value="${escapeHtml(draft.endDate||draft.date)}"><input class="aqua-input" type="time" name="end" value="${escapeHtml(draft.end)}"></div></label>
-          <label><span>重复：</span><select class="aqua-select" name="repeat"><option value="none">无</option><option value="daily">每天</option><option value="weekly">每周</option><option value="monthly">每月</option><option value="yearly">每年</option></select></label>
-          <label><span>提醒：</span><select class="aqua-select" name="alarm"><option value="none">无</option><option value="at-time">事件开始时</option><option value="5m">提前 5 分钟</option><option value="15m">提前 15 分钟</option><option value="1h">提前 1 小时</option><option value="1d">提前 1 天</option></select></label>
-          <label><span>受邀人：</span><textarea class="aqua-input compact" name="attendees" placeholder="用逗号分隔电子邮件地址">${escapeHtml(draft.attendees.join(', '))}</textarea></label>
+          <label><span>${t('app.ical3.5a3eddc05a65')}：</span><input class="aqua-input" name="location" value="${escapeHtml(draft.location)}" placeholder="${t('app.ical3.8f588e038c7a')}"></label>
+          <label><span>${t('app.ical.f165ac3c93')}</span><select class="aqua-select" name="calendarId">${calendarOptions}</select></label>
+          <label class="ical3-all-day-control"><span></span><input type="checkbox" name="allDay" ${draft.allDay?'checked':''}> ${t('app.ical3.b613f38927a1')}${t('app.ical4.1c679fff25b1')}</label>
+          <label><span>${t('app.ical.0b43919cdc')}</span><div class="ical3-date-time"><input class="aqua-input" type="date" name="date" value="${escapeHtml(draft.date)}"><input class="aqua-input" type="time" name="start" value="${escapeHtml(draft.start)}"></div></label>
+          <label><span>${t('app.ical.b564cd0f77')}</span><div class="ical3-date-time"><input class="aqua-input" type="date" name="endDate" value="${escapeHtml(draft.endDate||draft.date)}"><input class="aqua-input" type="time" name="end" value="${escapeHtml(draft.end)}"></div></label>
+          <label><span>${t('app.ical.90e6d1bf99')}</span><select class="aqua-select" name="repeat"><option value="none">${t('app.ical.fa9c9207ae')}</option><option value="daily">${t('app.ical.3062ae896c')}</option><option value="weekly">${t('app.ical.cf0b1f336a')}</option><option value="monthly">${t('app.ical.4f3a2c8b07')}</option><option value="yearly">${t('app.ical.3231a84f04')}</option></select></label>
+          <label><span>${t('app.ical.2d60db3804')}</span><select class="aqua-select" name="alarm"><option value="none">${t('app.ical.fa9c9207ae')}</option><option value="at-time">${t('app.ical.1236644ee4')}</option><option value="5m">${t('app.ical.64f9374c19')}</option><option value="15m">${t('app.ical.26694a75f8')}</option><option value="1h">${t('app.ical.79f6e98c46')}</option><option value="1d">${t('app.ical.4197ca2fab')}</option></select></label>
+          <label><span>${t('app.ical.2d61ded498')}</span><textarea class="aqua-input compact" name="attendees" placeholder="${t('app.ical.317553f30c')}">${escapeHtml(draft.attendees.join(', '))}</textarea></label>
           <label><span>URL：</span><input class="aqua-input" name="url" value="${escapeHtml(draft.url)}" placeholder="https://…"></label>
-          <label><span>备注：</span><textarea class="aqua-input" name="notes" placeholder="可选备注">${escapeHtml(draft.notes)}</textarea></label>
+          <label><span>${t('app.ical.74b5f5882a')}</span><textarea class="aqua-input" name="notes" placeholder="${t('app.ical3.238fb102ce02')}">${escapeHtml(draft.notes)}</textarea></label>
         </div>
-        <section class="ical3-attachment-editor"><header><b>附件</b><button class="aqua-btn" type="button" data-add-attachment>添加…</button></header><div>${draft.attachments.map(path=>`<article><button type="button" data-open-attachment="${escapeHtml(path)}">${System.fileIconFor?.(path)||'📄'}<span>${escapeHtml(VFS.baseName(path))}</span></button><button type="button" data-remove-attachment="${escapeHtml(path)}" aria-label="移除">×</button></article>`).join('')||'<p>没有附件</p>'}</div></section>
+        <section class="ical3-attachment-editor"><header><b>${t('app.ical3.9b5c10af3e47')}</b><button class="aqua-btn" type="button" data-add-attachment>${t('app.ical4.03a32c2fc7c2')}</button></header><div>${draft.attachments.map(path=>`<article><button type="button" data-open-attachment="${escapeHtml(path)}">${System.fileIconFor?.(path)||'📄'}<span>${escapeHtml(VFS.baseName(path))}</span></button><button type="button" data-remove-attachment="${escapeHtml(path)}" aria-label="${t('app.ical.remove')}">×</button></article>`).join('')||`<p>${t('app.ical.e4c864645b')}</p>`}</div></section>
         <div class="ical3-event-editor-error"></div>`;
       form.querySelector('[name="repeat"]').value=draft.repeat;
       form.querySelector('[name="alarm"]').value=draft.alarm;
@@ -921,7 +927,7 @@
         sheetApi?.close('attach');
         let picked=false;
         setTimeout(()=>System.openPanel({
-          parent:win,title:'选择事件附件',startPath:'/用户/roll/文稿',allowMultiple:true,allowUpload:true,
+          parent:win,title:t('app.ical3.d86187899f82'),startPath:paths.documents,allowMultiple:true,allowUpload:true,
           onOpen:(paths)=>{
             picked=true;
             const additions=(Array.isArray(paths)?paths:[paths]).filter(path=>VFS.get(path)?.type==='file');
@@ -941,9 +947,9 @@
       const saveEvent=()=>{
         draft=collectEventDraft(form,draft);
         const error=form.querySelector('.ical3-event-editor-error');
-        if(!draft.title){error.textContent='请输入事件名称。';form.querySelector('[name="title"]').focus();return false;}
-        if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.date)||draft.endDate<draft.date){error.textContent='结束日期不能早于开始日期。';return false;}
-        if(!draft.allDay&&draft.endDate===draft.date&&timeMinutes(draft.end)<=timeMinutes(draft.start)){error.textContent='结束时间必须晚于开始时间。';return false;}
+        if(!draft.title){error.textContent=t('ui.37a31cff022c');form.querySelector('[name="title"]').focus();return false;}
+        if(!/^\d{4}-\d{2}-\d{2}$/.test(draft.date)||draft.endDate<draft.date){error.textContent=t('ui.229f1f76a297');return false;}
+        if(!draft.allDay&&draft.endDate===draft.date&&timeMinutes(draft.end)<=timeMinutes(draft.start)){error.textContent=t('app.ical3.b9689a336c08');return false;}
         draft.modifiedAt=Date.now();
         if(stored){
           const current=findStored(stored.event.id);
@@ -955,16 +961,16 @@
         (state.events[draft.date]=state.events[draft.date]||[]).push(normalizeEvent(draft,draft.date));
         selectedDate=draft.date;selectedEventId=draft.id;selectedOccurrence=draft.date;
         selectedCalendar=draft.calendarId;persist();render();
-        Leopard.toast('iCal',stored?'事件已经更新。':'事件已经添加。');
+        Leopard.toast('iCal',stored?t('ui.7684533ba062'):t('ui.31c30e7725a1'));
         return true;
       };
       sheetApi=System.showSheet({
-        parent:win,title:stored?'编辑事件':'新建事件',content:form,className:'ical3-event-sheet',
+        parent:win,title:stored?t('ui.c77427388bf8'):t('ui.e9bf9a05987e'),content:form,className:'ical3-event-sheet',
         initialFocus:form.querySelector('[name="title"]'),
         buttons:[
-          {label:'取消',cancel:true},
-          ...(stored?[{label:'删除',danger:true,action:()=>{setTimeout(()=>deleteEvent(stored),170);}}]:[]),
-          {label:stored?'完成':'添加',default:true,action:saveEvent},
+          {label:t('ui.4d0b4688c787'),cancel:true},
+          ...(stored?[{label:t('ui.3755f56f2f83'),danger:true,action:()=>{setTimeout(()=>deleteEvent(stored),170);}}]:[]),
+          {label:stored?t('ui.33246f6a5e5b'):t('ui.94191ce210d3'),default:true,action:saveEvent},
         ],
       });
       requestAnimationFrame(()=>{const input=form.querySelector('[name="title"]');input.focus();input.select();});
@@ -974,9 +980,9 @@
       if(!stored)return;
       closePopover();
       System.confirmSheet({
-        parent:win,headline:`删除事件“${stored.event.title}”？`,
-        message:stored.event.repeat!=='none'?'这会删除整个重复事件。':'此操作可以通过重新建立事件来恢复。',
-        okLabel:'删除',danger:true,onOK:()=>{
+        parent:win,headline:`${t('app.ical4.c8aafebaece2')}“${stored.event.title}”？`,
+        message:stored.event.repeat!=='none'?t('ui.b4203f1c70f5'):t('ui.fe5b946bc9c2'),
+        okLabel:t('ui.3755f56f2f83'),danger:true,onOK:()=>{
           const current=findStored(stored.event.id);
           if(!current)return;
           state.events[current.base].splice(current.index,1);
@@ -987,7 +993,7 @@
     }
     function duplicateEvent(){
       const stored=selectedStored();if(!stored)return;
-      const copy=normalizeEvent({...clone(stored.event),id:eventId(),title:`${stored.event.title} 副本`,createdAt:Date.now()},stored.base);
+      const copy=normalizeEvent({...clone(stored.event),id:eventId(),title:t('app.ical.copy', { title: stored.event.title }),createdAt:Date.now()},stored.base);
       (state.events[stored.base]=state.events[stored.base]||[]).push(copy);
       selectedEventId=copy.id;selectedOccurrence=stored.base;persist();render();
     }
@@ -1006,24 +1012,24 @@
     function openTodoEditor(existing){
       const draft=existing?clone(existing):{id:eventId(),title:'',due:selectedDate,calendarId:selectedCalendar,done:false,priority:'none',notes:''};
       const form=el('div','ical3-todo-editor');
-      form.innerHTML=`<label><span>待办事项：</span><input class="aqua-input" name="title" value="${escapeHtml(draft.title)}"></label>
-        <label><span>到期日：</span><input class="aqua-input" type="date" name="due" value="${escapeHtml(draft.due)}"></label>
-        <label><span>日历：</span><select class="aqua-select" name="calendarId">${state.calendars.filter(calendar=>!calendar.readOnly).map(calendar=>`<option value="${escapeHtml(calendar.id)}" ${calendar.id===draft.calendarId?'selected':''}>${escapeHtml(calendar.name)}</option>`).join('')}</select></label>
-        <label><span>优先级：</span><select class="aqua-select" name="priority"><option value="none">无</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option></select></label>
-        <label><span>备注：</span><textarea class="aqua-input" name="notes">${escapeHtml(draft.notes)}</textarea></label>
-        <label class="ical3-todo-complete"><span></span><input type="checkbox" name="done" ${draft.done?'checked':''}> 已完成</label><div class="ical3-todo-error"></div>`;
+      form.innerHTML=`<label><span>${t('app.ical.130cc02418')}</span><input class="aqua-input" name="title" value="${escapeHtml(draft.title)}"></label>
+        <label><span>${t('app.ical4.80c967ebf73e')}</span><input class="aqua-input" type="date" name="due" value="${escapeHtml(draft.due)}"></label>
+        <label><span>${t('app.ical.f165ac3c93')}</span><select class="aqua-select" name="calendarId">${state.calendars.filter(calendar=>!calendar.readOnly).map(calendar=>`<option value="${escapeHtml(calendar.id)}" ${calendar.id===draft.calendarId?'selected':''}>${escapeHtml(calendar.name)}</option>`).join('')}</select></label>
+        <label><span>${t('app.ical4.0dc948cc60d8')}</span><select class="aqua-select" name="priority"><option value="none">${t('app.ical.fa9c9207ae')}</option><option value="low">${t('app.ical.ec5af74c80')}</option><option value="medium">${t('app.ical.99367c6097')}</option><option value="high">${t('app.ical.27d8cf1ac6')}</option></select></label>
+        <label><span>${t('app.ical.74b5f5882a')}</span><textarea class="aqua-input" name="notes">${escapeHtml(draft.notes)}</textarea></label>
+        <label class="ical3-todo-complete"><span></span><input type="checkbox" name="done" ${draft.done?'checked':''}> ${t('app.ical4.e3b8556a6621')}</label><div class="ical3-todo-error"></div>`;
       form.querySelector('[name="priority"]').value=draft.priority;
       System.showSheet({
-        parent:win,title:existing?'编辑待办事项':'新建待办事项',content:form,className:'ical3-todo-sheet',
+        parent:win,title:existing?t('ui.ad1633db078b'):t('ui.b34d1ee208a4'),content:form,className:'ical3-todo-sheet',
         initialFocus:form.querySelector('[name="title"]'),
         buttons:[
-          {label:'取消',cancel:true},
-          ...(existing?[{label:'删除',danger:true,action:()=>{
+          {label:t('ui.4d0b4688c787'),cancel:true},
+          ...(existing?[{label:t('ui.3755f56f2f83'),danger:true,action:()=>{
             state.todos=state.todos.filter(todo=>todo.id!==existing.id);persist();renderTodos();
           }}]:[]),
-          {label:existing?'完成':'添加',default:true,action:()=>{
+          {label:existing?t('ui.33246f6a5e5b'):t('ui.94191ce210d3'),default:true,action:()=>{
             const titleValue=form.querySelector('[name="title"]').value.trim();
-            if(!titleValue){form.querySelector('.ical3-todo-error').textContent='请输入待办事项名称。';return false;}
+            if(!titleValue){form.querySelector('.ical3-todo-error').textContent=t('ui.cf9104af9b0f');return false;}
             Object.assign(draft,{
               title:titleValue,due:form.querySelector('[name="due"]').value,
               calendarId:form.querySelector('[name="calendarId"]').value,
@@ -1045,32 +1051,32 @@
       const startHour=Math.max(8,Math.min(16,Math.floor(timeMinutes(event.start)/60)-1));
       const hours=Array.from({length:9},(_,index)=>startHour+index);
       const hash=(text)=>[...text].reduce((sum,char)=>(sum*31+char.charCodeAt(0))>>>0,7);
-      pane.innerHTML=`<header><h3>受邀人可用性</h3><p>${escapeHtml(dateLabel(stored.base))} · 由本地 CalDAV 示例日程计算</p></header>
+      pane.innerHTML=`<header><h3>${t('app.ical3.6721476daca2')}${t('app.ical4.93f80029b38c')}</h3><p>${escapeHtml(dateLabel(stored.base))} · ${t('app.ical.caldavNote', { date: '' }).replace(/^ · /,'')}</p></header>
         <div class="ical3-availability-grid"><div></div>${hours.map(hour=>`<b>${pad(hour)}:00</b>`).join('')}
         ${event.attendees.map(attendee=>`<span title="${escapeHtml(attendee)}">${escapeHtml(attendee)}</span>${hours.map(hour=>{
           const busy=(hash(attendee)+hour*13+dateOf(stored.base).getDate())%5<2;
-          return `<i class="${busy?'busy':'free'}" title="${busy?'忙碌':'空闲'}"></i>`;
+          return `<i class="${busy?'busy':'free'}" title="${busy?t('app.ical3.5808c9140ed7'):t('ui.837e7a109abf')}"></i>`;
         }).join('')}`).join('')}</div>
-        <footer><i class="free"></i> 空闲 <i class="busy"></i> 忙碌 <span></span><button class="aqua-btn" data-next-available>下一个可用时间</button></footer>`;
+        <footer><i class="free"></i> ${t('app.ical3.d2f8b12d3ae2')} <i class="busy"></i> ${t('app.ical3.5808c9140ed7')} <span></span><button class="aqua-btn" data-next-available>${t('app.ical.nextAvail')}</button></footer>`;
       const findNext=()=>{
         for(const hour of hours){
           if(event.attendees.every(attendee=>(hash(attendee)+hour*13+dateOf(stored.base).getDate())%5>=2))return hour;
         }
         return null;
       };
-      const api=System.showSheet({parent:win,title:'可用性',content:pane,className:'ical3-availability-sheet',buttons:[{label:'完成',default:true}]});
+      const api=System.showSheet({parent:win,title:t('ui.11b0f73018f3'),content:pane,className:'ical3-availability-sheet',buttons:[{label:t('ui.33246f6a5e5b'),default:true}]});
       pane.querySelector('[data-next-available]').addEventListener('click',()=>{
         const hour=findNext();
-        if(hour==null){Leopard.toast('iCal','当天没有共同空闲的一小时。');return;}
+        if(hour==null){Leopard.toast('iCal',t('ui.e3ec1cf0c0fb'));return;}
         event.start=`${pad(hour)}:00`;event.end=`${pad(hour+1)}:00`;event.modifiedAt=Date.now();
-        persist();api.close('accept');render();Leopard.toast('iCal',`已移到 ${pad(hour)}:00。`);
+        persist();api.close('accept');render();Leopard.toast('iCal', t('app.ical.moved', { time: `${pad(hour)}:00` }));
       });
     }
 
     function createCalendar(){
       System.promptSheet({
-        parent:win,title:'新建日历',message:'日历名称：',value:'未命名日历',okLabel:'创建',
-        validate:name=>state.calendars.some(calendar=>calendar.name.toLocaleLowerCase('zh-CN')===name.toLocaleLowerCase('zh-CN'))?'已经存在同名日历。':true,
+        parent:win,title:t('ui.1f2d05026924'),message:t('ui.a39dd400d314'),value:t('app.ical.4038d0165a'),okLabel:t('ui.fcbd0932929e'),
+        validate:name=>state.calendars.some(calendar=>calendar.name.toLocaleLowerCase('zh-CN')===name.toLocaleLowerCase('zh-CN'))?t('ui.4848676d0b8a'):true,
         onOK:name=>{
           const palette=['#7d63b4','#dc8a3a','#40a66b','#c85d93','#4ba5a5'];
           const calendar={id:`calendar-${Date.now()}`,name,color:palette[state.calendars.length%palette.length],visible:true,builtIn:false,account:'onmy'};
@@ -1080,12 +1086,12 @@
     }
     function removeCalendar(){
       const calendar=calendarFor(selectedCalendar);
-      if(!calendar||calendar.builtIn){Leopard.toast('iCal','内建日历不能删除。');return;}
+      if(!calendar||calendar.builtIn){Leopard.toast('iCal',t('ui.f29698d08c17'));return;}
       const count=allStoredEvents().filter(item=>item.event.calendarId===calendar.id).length;
       System.confirmSheet({
-        parent:win,headline:`删除日历“${calendar.name}”？`,
-        message:`其中的 ${count} 个事件和关联待办事项会移到“个人”日历。`,
-        okLabel:'删除',danger:true,onOK:()=>{
+        parent:win,headline:`${t('app.ical3.dadc57fd22c8')}“${calendar.name}”？`,
+        message:t('app.ical.delCalMsg',{count,trash:t('app.ical3.f164fd24e2bf')}),
+        okLabel:t('ui.3755f56f2f83'),danger:true,onOK:()=>{
           allStoredEvents().forEach(({event})=>{if(event.calendarId===calendar.id)event.calendarId='home';});
           state.todos.forEach(todo=>{if(todo.calendarId===calendar.id)todo.calendarId='home';});
           state.calendars=state.calendars.filter(item=>item.id!==calendar.id);
@@ -1095,13 +1101,13 @@
     }
     function subscribeCalendar(){
       System.promptSheet({
-        parent:win,title:'订阅日历',message:'请输入 CalDAV 或 iCalendar 地址：',placeholder:'https://example.com/calendar.ics',okLabel:'订阅',
-        validate:value=>{try{const url=new URL(value);return /^https?:$/.test(url.protocol)||'请输入 http 或 https 地址。';}catch(error){return '请输入有效地址。';}},
+        parent:win,title:t('app.ical.7b69d5918c'),message:t('ui.b85ea436b14a'),placeholder:'https://example.com/calendar.ics',okLabel:t('app.ical.a34156b1c8'),
+        validate:value=>{try{const url=new URL(value);return /^https?:$/.test(url.protocol)||t('ui.e2ece7aea182');}catch(error){return t('app.ical.34be1e68a9');}},
         onOK:value=>{
-          let name='已订阅日历';try{name=new URL(value).hostname;}catch(error){}
+          let name=t('app.ical.ca337842e6');try{name=new URL(value).hostname;}catch(error){}
           const calendar={id:`subscription-${Date.now()}`,name,color:'#4ba7a0',visible:true,builtIn:false,account:'subscriptions',subscribed:true,readOnly:true,url:value};
           state.calendars.push(calendar);selectedCalendar=calendar.id;persist();render();
-          System.alertBox('iCal','订阅已经保存。\n\n浏览器版不会在后台连接任意 CalDAV 服务器；请使用“文件 → 导入…”导入实际 .ics 内容。');
+          System.alertBox('iCal',t('app.ical3.bd00b7948432'));
           return true;
         },
       });
@@ -1118,10 +1124,10 @@
     };
     function importICS(){
       System.openPanel({
-        parent:win,title:'导入 iCalendar 文件',startPath:'/用户/roll/文稿',types:['ics'],allowUpload:true,
+        parent:win,title:t('ui.06f7ae466c6d'),startPath:paths.documents,types:['ics'],allowUpload:true,
         onOpen:path=>{
           const node=VFS.get(path);
-          if(node?.type!=='file'||node.content==null){System.alertBox('iCal','所选文件没有可读取的 iCalendar 文本。');return false;}
+          if(node?.type!=='file'||node.content==null){System.alertBox('iCal',t('ui.ef2bdd1173bc'));return false;}
           const lines=String(node.content).replace(/\r?\n[ \t]/g,'').split(/\r?\n/);
           const imported=[];let current=null;let inAlarm=false;
           lines.forEach(line=>{
@@ -1160,10 +1166,10 @@
             }else if(name==='ATTENDEE')current.attendees.push(unescapeICS(value.replace(/^mailto:/i,'')));
             else if(name==='ATTACH'&&VFS.get(value))current.attachments.push(value);
           });
-          if(!imported.length){System.alertBox('iCal','没有找到可导入的 VEVENT。');return false;}
+          if(!imported.length){System.alertBox('iCal',t('ui.c537d14f5990'));return false;}
           imported.forEach(event=>(state.events[event.date]=state.events[event.date]||[]).push(event));
           persist();selectedDate=imported[0].date;render();
-          Leopard.toast('iCal',`已导入 ${imported.length} 个事件。`);return true;
+          Leopard.toast('iCal',t('app.ical.importN',{n:imported.length}));return true;
         },
       });
     }
@@ -1172,7 +1178,7 @@
       const items=allStoredEvents().filter(({event})=>event.calendarId===selectedCalendar);
       const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
       const icsDate=(date,time,allDay)=>allDay?date.replace(/-/g,''):`${date.replace(/-/g,'')}T${String(time||'09:00').replace(':','')}00`;
-      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Leopard Web//iCal 3//ZH','CALSCALE:GREGORIAN',`X-WR-CALNAME:${escapeICS(calendar?.name||'日历')}`];
+      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Leopard Web//iCal 3//ZH','CALSCALE:GREGORIAN',`X-WR-CALNAME:${escapeICS(calendar?.name||t('app.ical.01bef11b7e'))}`];
       items.forEach(({event,base})=>{
         lines.push('BEGIN:VEVENT',`UID:${event.id}@leopard-web`,`DTSTAMP:${stamp}`);
         lines.push(`${event.allDay?'DTSTART;VALUE=DATE':'DTSTART'}:${icsDate(base,event.start,event.allDay)}`);
@@ -1190,13 +1196,13 @@
         lines.push('END:VEVENT');
       });
       lines.push('END:VCALENDAR','');
-      const safeName=(calendar?.name||'日历').replace(/[\\/:*?"<>|]/g,'-');
+      const safeName=(calendar?.name||t('app.ical.01bef11b7e')).replace(/[\\/:*?"<>|]/g,'-');
       System.savePanel({
-        parent:win,title:'导出日历',startPath:'/用户/roll/文稿',
-        name:VFS.uniqueName('/用户/roll/文稿',safeName,'.ics'),extension:'ics',typeLabel:'iCalendar 文件',allowOverwrite:true,
+        parent:win,title:t('app.ical3.728441e14214'),startPath:paths.documents,
+        name:VFS.uniqueName(paths.documents,safeName,'.ics'),extension:'ics',typeLabel:t('ui.aed775b29cf8'),allowOverwrite:true,
         onSave:path=>{
           const ok=VFS.putNode(path,{type:'file',kind:'document',mime:'text/calendar',content:lines.join('\r\n'),creator:'ical',generated:true});
-          if(ok){System.addRecentDocument?.(path,'ical');Leopard.toast('iCal',`已导出 ${items.length} 个事件。`);}
+          if(ok){System.addRecentDocument?.(path,'ical');Leopard.toast('iCal',t('app.ical.exportN',{n:items.length}));}
           return ok;
         },
       });
@@ -1211,8 +1217,8 @@
       }
       const pane=el('div','ical3-day-summary');
       const items=eventsFor(selectedDate);
-      pane.innerHTML=`<header><h3>${escapeHtml(dateLabel(selectedDate))}</h3><span>${items.length} 个事件</span></header><div>${items.map(item=>`<article><i style="--ical-event-color:${escapeHtml(colorForEvent(item.event))}"></i><span><b>${escapeHtml(item.event.title)}</b><small>${item.event.allDay?'全天':`${escapeHtml(item.event.start)}–${escapeHtml(item.event.end)}`} · ${escapeHtml(calendarFor(item.event.calendarId)?.name||'生日')}</small></span></article>`).join('')||'<p>这一天没有事件。</p>'}</div>`;
-      System.showSheet({parent:win,title:'事件简介',content:pane,className:'ical3-day-summary-sheet',buttons:[{label:'完成',default:true}]});
+      pane.innerHTML=`<header><h3>${escapeHtml(dateLabel(selectedDate))}</h3><span>${items.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}</span></header><div>${items.map(item=>`<article><i style="--ical-event-color:${escapeHtml(colorForEvent(item.event))}"></i><span><b>${escapeHtml(item.event.title)}</b><small>${item.event.allDay?t('app.ical3.b613f38927a1'):`${escapeHtml(item.event.start)}–${escapeHtml(item.event.end)}`} · ${escapeHtml(calendarFor(item.event.calendarId)?.name||t('app.ical3.bd172f28babf'))}</small></span></article>`).join('')||`<p>${t('app.ical2.d2400783d6a1')}</p>`}</div>`;
+      System.showSheet({parent:win,title:t('app.ical3.2d5ed7d7161b'),content:pane,className:'ical3-day-summary-sheet',buttons:[{label:t('ui.33246f6a5e5b'),default:true}]});
     }
 
     previous.addEventListener('click',()=>{
@@ -1263,7 +1269,7 @@
     document.addEventListener('mail-data-changed',externalDataChanged);
 
     win=System.createWindow({
-      app:'ical',title:'iCal',width:1020,height:650,toolbar,content:root,statusbar:'正在载入 iCal…',
+      app:'ical',title:'iCal',width:1020,height:650,toolbar,content:root,statusbar:t('ui.bfee242055a5'),
       onClose:()=>{
         clearTimeout(searchTimer);closePopover();
         document.removeEventListener('app-preferences-changed',preferencesChanged);
@@ -1283,7 +1289,7 @@
         'month-view':()=>viewButtons.querySelector('[data-view="month"]').click(),
         'toggle-todos':()=>todoButton.click(),
         'focus-search':()=>{search.focus();search.select();},
-        'refresh':()=>{state=loadState();render();Leopard.toast('iCal','所有日历已经刷新。');},
+        'refresh':()=>{state=loadState();render();Leopard.toast('iCal',t('ui.b12b102e5eb1'));},
         'event-info':showEventInfo,
         'edit-event':()=>{const stored=selectedStored();if(stored)openEventEditor(stored,selectedOccurrence);},
         'duplicate-event':duplicateEvent,
@@ -1301,7 +1307,7 @@
 
   System.registerApp({
     id:'ical',name:'iCal',icon:iCalIcon,open:openICal3,multiWindow:false,
-    about:'Leopard iCal 3：日、周、月视图，事件简介和完整编辑，重复与提醒、受邀人可用性、附件、Mail 待办同步以及 iCalendar 导入导出。',
-    keywords:'ical calendar 日历 日程 event todo caldav ics 群组日历',
+    about:t('ui.6cab981d087c'),
+    keywords:t('ui.e8318f3e4880'),
   });
 })();

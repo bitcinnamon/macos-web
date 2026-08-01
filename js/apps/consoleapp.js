@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // 控制台 (Console) — system log browser, captured console output and JS diagnostics
 (() => {
   const { el } = System;
@@ -49,7 +55,7 @@
     pushCaptured('JavaScript', `${event.message}${file ? ` @ ${file}:${event.lineno || 0}:${event.colno || 0}` : ''}`, 'error');
   });
   window.addEventListener('unhandledrejection', (event) => {
-    pushCaptured('Promise', `未处理的 Promise 拒绝：${safeArgument(event.reason)}`, 'error');
+    pushCaptured('Promise', t('app.con.unhandled', { reason: safeArgument(event.reason) }), 'error');
   });
 
   const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
@@ -57,45 +63,45 @@
   }[character]));
   const levelForSystem = (entry) => {
     const text = `${entry.src} ${entry.msg}`.toLocaleLowerCase('zh-CN');
-    if (/error|错误|failed|失败|crash|崩溃|fatal/.test(text)) return 'error';
-    if (/warn|警告|注意|denied|拒绝|不可用/.test(text)) return 'warn';
+    if (/error|failed|失败|crash|崩溃|fatal/i.test(text)) return 'error';
+    if (/warn|注意|denied|拒绝|不可用/i.test(text)) return 'warn';
     return 'info';
   };
 
   function open() {
     const toolbar = el('div', 'console-toolbar');
-    const logListButton = el('button', 'finder-toolbar-btn', '显示日志列表');
-    const inspectorButton = el('button', 'finder-toolbar-btn', 'ⓘ 检查器');
-    const clearButton = el('button', 'finder-toolbar-btn', '清除显示');
-    const markerButton = el('button', 'finder-toolbar-btn', '插入标记');
-    const followButton = el('button', 'finder-toolbar-btn', '暂停');
+    const logListButton = el('button', 'finder-toolbar-btn', t('ui.b547dc3bf074'));
+    const inspectorButton = el('button', 'finder-toolbar-btn', t('app.con2.efc4a6e9e359'));
+    const clearButton = el('button', 'finder-toolbar-btn', t('ui.f3ebcc28014b'));
+    const markerButton = el('button', 'finder-toolbar-btn', t('app.con2.21f5a1d04068'));
+    const followButton = el('button', 'finder-toolbar-btn', t('ui.130448bce675'));
     const toolbarSpacer = el('i');
     const levelSelect = el('select', 'console-level');
-    levelSelect.setAttribute('aria-label', '日志级别');
-    levelSelect.innerHTML = '<option value="all">所有信息</option><option value="warn">警告与错误</option><option value="error">仅错误</option>';
+    levelSelect.setAttribute('aria-label', t('app.con2.79cb8b977e07'));
+    levelSelect.innerHTML = `<option value="all">${t('app.con2.2097ad668505')}</option><option value="warn">${t('app.con2.fbb049aec27c')}</option><option value="error">${t('app.con2.7eec33106e60')}</option>`;
     const search = el('input', 'aqua-search console-search');
     search.type = 'search';
-    search.placeholder = '过滤器';
-    search.setAttribute('aria-label', '过滤日志');
+    search.placeholder = t('app.con2.7a322b4a2117');
+    search.setAttribute('aria-label', t('app.con2.36f3ae834f9a'));
     toolbar.append(logListButton, inspectorButton, clearButton, markerButton, followButton, toolbarSpacer, levelSelect, search);
 
     const root = el('div', 'console-app');
-    root.innerHTML = `<aside class="console-sources"><header>日志列表</header><div></div><footer><button data-console-source="all">显示所有信息</button></footer></aside>
-      <main class="console-main"><header class="console-columns"><span class="time">时间</span><span class="sender">发送者</span><span class="level">级别</span><span class="message">信息</span></header><div class="console-rows" role="listbox" aria-label="日志信息" tabindex="0"></div><section class="console-inspector" hidden></section></main>`;
+    root.innerHTML = `<aside class="console-sources"><header>${t('app.con2.e63734ec6f61')}</header><div></div><footer><button data-console-source="all">${t('app.con2.491fa46d9e5b')}</button></footer></aside>
+      <main class="console-main"><header class="console-columns"><span class="time">${t('app.con2.dc165c5c4a89')}</span><span class="sender">${t('app.con2.33ec79f8f03f')}</span><span class="level">${t('app.con2.25258ebc2944')}</span><span class="message">${t('app.con2.cfd514e55478')}</span></header><div class="console-rows" role="listbox" aria-label="${t('app.con2.f5806212620b')}" tabindex="0"></div><section class="console-inspector" hidden></section></main>`;
     const sourceList = root.querySelector('.console-sources>div');
     const rows = root.querySelector('.console-rows');
     const inspector = root.querySelector('.console-inspector');
 
     const sourceDefinitions = [
-      { group:'数据库搜索', items:[
-        { id:'all', icon:'▤', name:'所有信息', filter:() => true },
-        { id:'errors', icon:'!', name:'所有错误与警告', filter:(entry) => entry.level === 'warn' || entry.level === 'error' },
-        { id:'console', icon:'›_', name:'控制台信息', filter:(entry) => entry.origin === 'captured' },
-        { id:'system', icon:'⚙', name:'系统信息', filter:(entry) => entry.origin === 'system' },
+      { group:t('ui.ac58d773a059'), items:[
+        { id:'all', icon:'▤', name:t('app.con2.2097ad668505'), filter:() => true },
+        { id:'errors', icon:'!', name:t('ui.a0a5f683a8d5'), filter:(entry) => entry.level === 'warn' || entry.level === 'error' },
+        { id:'console', icon:'›_', name:t('app.con2.7f5e455525d3'), filter:(entry) => entry.origin === 'captured' },
+        { id:'system', icon:'⚙', name:t('ui.5995b612540c'), filter:(entry) => entry.origin === 'system' },
       ]},
-      { group:'文件', items:[
+      { group:t('ui.49deaf7da20d'), items:[
         { id:'systemlog', icon:'▧', name:'system.log', detail:'/var/log/system.log', filter:(entry) => entry.origin === 'system' },
-        { id:'installlog', icon:'▧', name:'install.log', detail:'/var/log/install.log', filter:(entry) => /diskutil|fontbook|installer|安装|磁盘工具|字体册/i.test(`${entry.src} ${entry.msg}`) },
+        { id:'installlog', icon:'▧', name:'install.log', detail:'/var/log/install.log', filter:(entry) => /diskutil|fontbook|installer|安装|字体|权限/i.test(`${entry.src} ${entry.msg}`) },
         { id:'securelog', icon:'▧', name:'secure.log', detail:'/var/log/secure.log', filter:(entry) => /login|keychain|security|secure|认证|钥匙串/i.test(`${entry.src} ${entry.msg}`) },
         { id:'javascript', icon:'▧', name:'javascript.log', detail:'~/Library/Logs/JavaScript.log', filter:(entry) => entry.origin === 'captured' && /JavaScript|Promise|console\.(warn|error)/i.test(entry.src) },
       ]},
@@ -162,14 +168,14 @@
       inspector.hidden = !showInspector;
       if (!showInspector) return;
       if (!entry) {
-        inspector.innerHTML = '<p class="console-inspector-empty">选择一条日志信息以查看详细资料。</p>';
+        inspector.innerHTML = `<p class="console-inspector-empty">${t('app.con2.626eabd61cd2')}</p>`;
         return;
       }
       const date = new Date(entry.time);
-      inspector.innerHTML = `<header><span class="${entry.level}">${entry.level === 'error' ? '!' : entry.level === 'warn' ? '⚠' : entry.level === 'marker' ? '◆' : 'i'}</span><div><b>${escapeHtml(entry.src)}</b><small>${date.toLocaleString('zh-CN')}</small></div><button class="aqua-btn" data-console-copy-detail>拷贝</button></header><dl>
-        <dt>时间：</dt><dd>${escapeHtml(entry.ts)}</dd><dt>发送者：</dt><dd>${escapeHtml(entry.src)}</dd>
-        <dt>级别：</dt><dd>${escapeHtml(entry.level)}</dd><dt>来源：</dt><dd>${entry.origin === 'system' ? '系统事件日志' : entry.origin === 'marker' ? '用户标记' : '浏览器控制台'}</dd>
-        <dt>信息：</dt><dd>${escapeHtml(entry.msg)}</dd><dt>标识符：</dt><dd>${escapeHtml(entry.id)}</dd>
+      inspector.innerHTML = `<header><span class="${entry.level}">${entry.level === 'error' ? '!' : entry.level === 'warn' ? '⚠' : entry.level === 'marker' ? '◆' : 'i'}</span><div><b>${escapeHtml(entry.src)}</b><small>${date.toLocaleString('zh-CN')}</small></div><button class="aqua-btn" data-console-copy-detail>${t('app.con2.95f7bb53c94d')}</button></header><dl>
+        <dt>${t('app.con.9e1fb299ed')}</dt><dd>${escapeHtml(entry.ts)}</dd><dt>${t('app.con2.33ec79f8f03f')}：</dt><dd>${escapeHtml(entry.src)}</dd>
+        <dt>${t('app.con2.25258ebc2944')}：</dt><dd>${escapeHtml(entry.level)}</dd><dt>${t('app.con.sourceLbl')}</dt><dd>${entry.origin === 'system' ? t('ui.98dd7cbf8ddd') : entry.origin === 'marker' ? t('ui.e9f0b812c47f') : t('app.con2.8da73d77a0cf')}</dd>
+        <dt>${t('app.con2.cfd514e55478')}：</dt><dd>${escapeHtml(entry.msg)}</dd><dt>${t('app.con.idLbl')}</dt><dd>${escapeHtml(entry.id)}</dd>
       </dl>`;
       inspector.querySelector('[data-console-copy-detail]').addEventListener('click', copySelected);
     };
@@ -208,7 +214,7 @@
         row.type = 'button';
         row.setAttribute('role','option');
         row.setAttribute('aria-selected', String(entry.id === selectedEntryId));
-        row.innerHTML = `<span class="time">${escapeHtml(entry.ts)}</span><span class="sender">${escapeHtml(entry.src)}</span><span class="level">${entry.level === 'error' ? '错误' : entry.level === 'warn' ? '警告' : '信息'}</span><span class="message">${escapeHtml(entry.msg)}</span>`;
+        row.innerHTML = `<span class="time">${escapeHtml(entry.ts)}</span><span class="sender">${escapeHtml(entry.src)}</span><span class="level">${entry.level === 'error' ? t('ui.b859c7be7501') : entry.level === 'warn' ? t('ui.5521e368d87e') : t('app.con2.cfd514e55478')}</span><span class="message">${escapeHtml(entry.msg)}</span>`;
         row.addEventListener('click', () => selectEntry(entry.id));
         row.addEventListener('dblclick', () => {
           selectedEntryId = entry.id;
@@ -221,22 +227,22 @@
           selectedEntryId = entry.id;
           renderInspector();
           System.contextMenu(event, [
-            { label:'拷贝信息', action:copySelected },
-            { label:'在此处插入标记', action:insertMarker },
+            { label:t('ui.57d9c367180d'), action:copySelected },
+            { label:t('app.con2.e5260360f20d'), action:insertMarker },
             { sep:true },
-            { label:`仅显示“${entry.src}”`, action:() => { query=entry.src; search.value=entry.src; scheduleRender(); } },
+            { label:t('app.con.filterOnly', { src: entry.src }), action:() => { query=entry.src; search.value=entry.src; scheduleRender(); } },
           ]);
         });
         rows.appendChild(row);
       });
-      if (!currentEntries.length) rows.appendChild(el('p', 'console-empty', hiddenBefore ? '显示已清除；新信息会在此处出现。' : '没有符合条件的日志信息。'));
+      if (!currentEntries.length) rows.appendChild(el('p', 'console-empty', hiddenBefore ? t('ui.5d32fa4cdcf6') : t('ui.9d11cdabcbc4')));
       if (following || distanceFromBottom < 18) rows.scrollTop = rows.scrollHeight;
       else rows.scrollTop = previousScrollTop;
       renderSources();
       renderInspector();
       if (win) {
         const status = win.querySelector('.win-statusbar');
-        if (status) status.textContent = `${sourceDefinition().name} · 显示 ${currentEntries.length} 条信息 · ${following ? '实时滚动' : '已暂停滚动'}`;
+        if (status) status.textContent = t('app.con.status2', { name: sourceDefinition().name, n: currentEntries.length, follow: following ? t('app.con2.60965e118a69') : t('app.con2.fea317a70af3') });
       }
       updateChrome();
       updateWindowState();
@@ -250,9 +256,9 @@
     const updateChrome = () => {
       root.classList.toggle('hide-sources', !showSources);
       root.classList.toggle('show-inspector', showInspector);
-      logListButton.textContent = showSources ? '隐藏日志列表' : '显示日志列表';
+      logListButton.textContent = showSources ? t('ui.88c1207e34d0') : t('ui.b547dc3bf074');
       inspectorButton.classList.toggle('active', showInspector);
-      followButton.textContent = following ? '暂停' : '继续';
+      followButton.textContent = following ? t('ui.130448bce675') : t('ui.1fc1afc5c55e');
       copyButtonState();
     };
     const copyButtonState = () => {
@@ -292,7 +298,7 @@
       const markerTime = Math.max(now.getTime(), hiddenBefore + 1);
       const marker = {
         id:`marker-${markerTime}-${markers.length}`, ts:timeLabel(new Date(markerTime)), time:markerTime,
-        src:'控制台', msg:'用户标记', level:'marker', origin:'marker',
+        src:t('ui.5bd086d22a00'), msg:t('ui.e9f0b812c47f'), level:'marker', origin:'marker',
       };
       markers.push(marker);
       selectedEntryId = marker.id;
@@ -322,7 +328,7 @@
       if (!entry) return System.beep();
       try {
         await navigator.clipboard.writeText(entryText(entry));
-        Leopard.toast('控制台', '日志信息已拷贝。');
+        Leopard.toast(t('ui.5bd086d22a00'), t('ui.fe88abb73bfe'));
       } catch (error) {
         System.beep();
       }
@@ -331,9 +337,9 @@
       const lines = currentEntries.map(entryText).join('\n') + '\n';
       const sourceName = sourceDefinition().name.replace(/[\\/:]/g,'-');
       System.savePanel({
-        parent:win, title:'存储日志', startPath:'/用户/roll/文稿',
-        name:VFS.uniqueName('/用户/roll/文稿', `${sourceName} ${new Date().toISOString().slice(0,10)}`, '.log'),
-        extension:'log', typeLabel:'日志文稿', allowOverwrite:true,
+        parent:win, title:t('ui.304dcfd122b8'), startPath:paths.documents,
+        name:VFS.uniqueName(paths.documents, `${sourceName} ${new Date().toISOString().slice(0,10)}`, '.log'),
+        extension:'log', typeLabel:t('ui.838015aadf1f'), allowOverwrite:true,
         onSave:(path) => {
           const saved = VFS.putNode(path, {
             type:'file', kind:'document', mime:'text/plain', content:lines,
@@ -341,7 +347,7 @@
           });
           if (saved) {
             System.addRecentDocument?.(path, 'consoleapp');
-            Leopard.toast('控制台', `“${VFS.baseName(path)}”已存储。`);
+            Leopard.toast(t('ui.5bd086d22a00'), `“${VFS.baseName(path)}”${t('app.con2.ea8cdd301922')}。`);
           }
           return saved;
         },
@@ -368,8 +374,8 @@
     };
 
     win = System.createWindow({
-      app:'consoleapp', title:'控制台', width:900, height:570,
-      toolbar, content:root, statusbar:'正在读取日志数据库…',
+      app:'consoleapp', title:t('ui.5bd086d22a00'), width:900, height:570,
+      toolbar, content:root, statusbar:t('app.con.reading'),
       onClose:() => {
         document.removeEventListener('syslog', scheduleRender);
         if (renderId) cancelAnimationFrame(renderId);
@@ -435,8 +441,8 @@
   }
 
   System.registerApp({
-    id:'consoleapp', name:'控制台', icon, open,
-    about:'浏览系统事件、浏览器控制台与 JavaScript 错误，支持日志源、过滤、标记、检查器和导出。',
-    keywords:'console 控制台 日志 log system javascript error',
+    id:'consoleapp', name:t('ui.5bd086d22a00'), icon, open,
+    about:t('ui.eb042d33f975'),
+    keywords:t('ui.e12895632f40'),
   });
 })();

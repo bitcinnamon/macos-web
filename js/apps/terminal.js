@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // 终端 (Terminal) — fake bash over the shared VFS
 (() => {
   const { el } = System;
@@ -8,7 +14,7 @@
     let preferences = System.getAppPreferences?.('terminal') || {};
     let shellName = ['bash', 'zsh', 'sh'].includes(preferences.startupShell) ? preferences.startupShell : 'bash';
     const term = el('div', 'term');
-    const HOME = '/用户/roll';
+    const HOME = paths.home;
     const requestedDirectory = String(preferences.workingDirectory || HOME);
     let cwd = VFS.isDir(requestedDirectory) ? requestedDirectory : HOME;
     let remote = null; // ssh session: {user, host, cwd}
@@ -44,10 +50,10 @@
 
     const commands = {
       help() {
-        line('文件:  ls cd pwd cat echo mkdir touch rm df');
-        line('系统:  date whoami uname sw_vers uptime hostname ps top clear history open banner say');
-        line('驱动:  kextstat kextload kextunload   （卸载 QuartzExtreme.kext 试试！）');
-        line('网络:  ping curl ifconfig ssh user@host');
+        line(t('ui.65d26270df3c'));
+        line(t('app.term.sys'));
+        line(t('ui.fb653026a76c'));
+        line(t('ui.6233c5345c49'));
         line('git:   init add commit log status remote push pull clone branch');
       },
       pwd() { line(cwd); },
@@ -56,20 +62,20 @@
         const paths = args.filter((a) => !a.startsWith('-'));
         const target = resolve(paths[0]);
         let items = VFS.list(target);
-        if (items === null) { line(`ls: ${paths[0] || target}: 没有那个文件或目录`); return; }
+        if (items === null) { line(`ls: ${paths[0] || target}: ${t('app.term2.00c9bf933985')}`); return; }
         if (!showAll) items = items.filter((n) => !n.startsWith('.'));
         line(items.map((n) => VFS.isDir(target + '/' + n) ? n + '/' : n).join('  '));
       },
       cd(args) {
         const t = resolve(args[0] || '~');
-        if (!VFS.isDir(t)) { line(`cd: ${args[0]}: 不是目录`); return; }
+        if (!VFS.isDir(t)) { line(t('app.term.notDir', { path: args[0] })); return; }
         cwd = t;
       },
       cat(args) {
-        if (!args[0]) { line('用法: cat <文件>'); return; }
+        if (!args[0]) { line(t('app.term2.e94a0d2e3981')); return; }
         const n = VFS.get(resolve(args[0]));
-        if (!n || n.type !== 'file') { line(`cat: ${args[0]}: 没有那个文件`); return; }
-        line(n.kind === 'image' ? `(二进制图像: ${n.src})` : (n.content || ''));
+        if (!n || n.type !== 'file') { line(`cat: ${args[0]}: ${t('app.term2.9f699dde9955')}`); return; }
+        line(n.kind === 'image' ? t('app.term.binImg', { src: n.src }) : (n.content || ''));
       },
       echo(args, raw) {
         const m = raw.match(/>\s*(\S+)\s*$/);
@@ -79,18 +85,18 @@
         } else line(args.join(' ').replace(/^"(.*)"$/, '$1'));
       },
       mkdir(args) {
-        if (!args[0]) { line('用法: mkdir <目录>'); return; }
-        if (!VFS.mkdir(resolve(args[0]))) line(`mkdir: 无法创建 ${args[0]}`);
+        if (!args[0]) { line(t('app.term2.eca30edeeaf1')); return; }
+        if (!VFS.mkdir(resolve(args[0]))) line(t('app.term.mkdirFail', { path: args[0] }));
       },
       touch(args) {
-        if (!args[0]) { line('用法: touch <文件>'); return; }
+        if (!args[0]) { line(t('app.term2.92351037c534')); return; }
         const p = resolve(args[0]);
         if (!VFS.get(p)) VFS.writeFile(p, '');
       },
       rm(args) {
         const p = args.filter((a) => !a.startsWith('-'))[0];
-        if (!p) { line('用法: rm [-rf] <路径>'); return; }
-        if (!VFS.remove(resolve(p))) line(`rm: ${p}: 没有那个文件或目录`);
+        if (!p) { line(t('app.term2.0f44ad180dee')); return; }
+        if (!VFS.remove(resolve(p))) line(`rm: ${p}: ${t('app.term2.00c9bf933985')}`);
       },
       date() { line(new Date().toString()); },
       whoami() { line('roll'); },
@@ -99,11 +105,9 @@
       clear() { term.querySelectorAll('.t-line').forEach((d) => d.remove()); },
       open(args) {
         const name = (args[0] || '').toLowerCase();
-        const map = { calculator: 'calculator', notes: 'notes', textedit: 'textedit', safari: 'safari', finder: 'finder', ical: 'ical', itunes: 'itunes', preview: 'preview', chess: 'chess',
-                      diskutil: 'diskutil', activity: 'activity', console: 'consoleapp', profiler: 'sysprofiler', netutil: 'netutil', fontbook: 'fontbook', opengl: 'opengl',
-                      备忘录: 'notes', 计算器: 'calculator', 磁盘工具: 'diskutil', 活动监视器: 'activity', 控制台: 'consoleapp', 系统报告: 'sysprofiler', 字体册: 'fontbook' };
-        if (map[name]) { System.launch(map[name]); line(`正在打开 ${name}…`); }
-        else line('用法: open <应用名>，如 open diskutil / open opengl / open 系统报告');
+        const map = { calculator:'calculator', notes:'notes', textedit:'textedit', safari:'safari', finder:'finder', ical:'ical', itunes:'itunes', preview:'preview', chess:'chess', diskutil:'diskutil', activity:'activity', console:'consoleapp', profiler:'sysprofiler', netutil:'netutil', fontbook:'fontbook', opengl:'opengl', mail:'mail', terminal:'terminal' };
+        if (map[name]) { System.launch(map[name]); line(t('app.term.launching', { name })); }
+        else line(t('app.term2.4f7774f736c7'));
       },
       banner(args) {
         const t = (args.join(' ') || 'MAC OS X').toUpperCase().slice(0, 10);
@@ -124,7 +128,7 @@
           const used = ((est.usage || 0) / 1024).toFixed(0), quota = ((est.quota || 0) / 1024).toFixed(0);
           line('Filesystem     1K-blocks     Used  Mounted on');
           line(`/dev/disk0s2  ${quota.padStart(9)} ${used.padStart(8)}  /`);
-        }).catch(() => line('df: 无法获取存储信息'));
+        }).catch(() => line(t('ui.17def587009e')));
       },
       ps() {
         line('  PID TTY      TIME     CMD');
@@ -133,7 +137,7 @@
         });
         line('   88 ??    12:04.22  WindowServer');
       },
-      top() { System.launch('activity'); line('正在打开活动监视器…'); },
+      top() { System.launch('activity'); line(t('ui.c3cfd85a0897')); },
       ifconfig() {
         const c = navigator.connection || {};
         line(`en0: flags=8863<UP,BROADCAST,RUNNING> mtu 1500`);
@@ -146,23 +150,25 @@
         System.Kexts.list().forEach((k, i) => line(`${String(i + 1).padStart(5)} ${k.loaded ? '  ✔   ' : '  ✘   '} ${k.ver.padEnd(9)} ${k.name}  (${k.desc})`));
       },
       kextload(args) {
-        if (!args[0]) { line('用法: kextload <名称|路径>.kext　（可先 mkdir 我的驱动.kext 再装载）'); return; }
+        if (!args[0]) { line(t('app.term2.ba5f0c9191b3')); return; }
         const r = System.Kexts.load(args[0].startsWith('/') || args[0].startsWith('~') ? resolve(args[0]) : args[0]);
         line(r.msg);
       },
       kextunload(args) {
-        if (!args[0]) { line('用法: kextunload <名称>.kext　（试试卸载 QuartzExtreme.kext 看看会发生什么）'); return; }
+        if (!args[0]) { line(t('app.term2.e2e0e70129c9')); return; }
         line(System.Kexts.unload(args[0]).msg);
       },
       // ---- 真实网络 ----
       async ping(args) {
         const host = (args.filter((a) => !a.startsWith('-'))[0] || 'example.com').replace(/^https?:\/\//, '').split('/')[0];
-        line(`PING ${host}: 56 data bytes（fetch no-cors 实测往返）`);
+        line(t('app.term.ping', { host }));
         const times = [];
         for (let i = 0; i < 4; i++) {
           const t0 = performance.now();
           try {
-            await fetch('https://' + host + '/?t=' + Date.now(), { mode: 'no-cors', cache: 'no-store' });
+            await fetch('https://' + host + '/?t=' + Date.now(), {
+              mode:'no-cors', cache:'no-store', credentials:'omit', referrerPolicy:'no-referrer',
+            });
             const ms = performance.now() - t0; times.push(ms);
             line(`64 bytes from ${host}: icmp_seq=${i} time=${ms.toFixed(1)} ms`);
           } catch (e) { line(`Request timeout for icmp_seq ${i}`); }
@@ -172,32 +178,32 @@
       },
       async curl(args) {
         const url = args.filter((a) => !a.startsWith('-'))[0];
-        if (!url) { line('用法: curl <url>'); return; }
+        if (!url) { line(t('app.term2.5505a76c662a')); return; }
         const full = /^https?:/.test(url) ? url : 'https://' + url;
         line(`* Connected to ${full}`);
         try {
-          const r = await fetch(full);
+          const r = await fetch(full, { credentials:'omit', referrerPolicy:'no-referrer' });
           const text = await r.text();
           line(`< HTTP ${r.status} ${r.statusText || ''}  (${text.length} bytes)`);
           text.split('\n').slice(0, 15).forEach((l) => line(l.slice(0, 120)));
-          if (text.split('\n').length > 15) line('… (截断，共 ' + text.split('\n').length + ' 行)');
+          if (text.split('\n').length > 15) line(t('ui.09a59662a1d6') + text.split('\n').length + t('app.term2.1e47cfb774ea'));
         } catch (e) {
-          line(`curl: (7) 请求失败 — 目标站点未开启 CORS，浏览器拦截了响应读取`);
-          line(`提示: 试试 curl dns.google/resolve?name=apple.com 或 curl example.com`);
+          line(t('app.term.curlFail'));
+          line(t('app.term.curlHint'));
         }
       },
       // ---- ssh（模拟远程会话）----
       ssh(args) {
         const target = args[0];
-        if (!target || !target.includes('@')) { line('用法: ssh user@host　（例: ssh roll@build-server.local）'); return; }
+        if (!target || !target.includes('@')) { line(t('ui.71ebbe5efdb9')); return; }
         const [user, host] = target.split('@');
-        line(`正在连接 ${host}…`);
+        line(t('app.term.conn', { host }));
         setTimeout(() => {
           remote = { user, host, cwd: '~' };
           line(`Warning: Permanently added '${host}' (RSA) to the list of known hosts.`);
           line(`Welcome to ${host} (Darwin 9.8.0 remote)`);
           line(`Last login: ${new Date().toDateString()} from macweb.local`);
-          line('输入 exit 断开连接。');
+          line(t('ui.e07cab7a2114'));
           refreshPrompt();
         }, 500);
       },
@@ -213,27 +219,27 @@
         const repo = () => { try { return JSON.parse(localStorage.getItem(KEY)) || null; } catch (e) { return null; } };
         const saveRepo = (r) => localStorage.setItem(KEY, JSON.stringify(r));
         const hash = () => Math.random().toString(16).slice(2, 9);
-        if (!sub) { line('用法: git <init|status|add|commit|log|remote|push|pull|clone|branch>'); return; }
+        if (!sub) { line(t('app.term2.060ef789943c')); return; }
         if (sub === 'init') {
-          if (VFS.get(cwd + '/.git')) { line('已经是 git 仓库'); return; }
+          if (VFS.get(cwd + '/.git')) { line(t('ui.e31aa3b222cf')); return; }
           VFS.mkdir(cwd + '/.git');
           localStorage.setItem('macweb.git.' + cwd, JSON.stringify({ branch: 'main', staged: [], commits: [], remotes: {} }));
-          line(`已初始化空的 Git 仓库于 ${cwd}/.git/`);
+          line(t('app.term.gitInit', { path: cwd }));
           return;
         }
-        if (!root) { line('fatal: 不是 git 仓库（先 git init）'); return; }
+        if (!root) { line(t('ui.e25faeeeb0b9')); return; }
         const r = repo();
         if (sub === 'status') {
-          line(`位于分支 ${r.branch}`);
+          line(t('app.term.branch', { branch: r.branch }));
           const all = (VFS.list(root) || []).filter((n) => n !== '.git');
           const committed = new Set(r.commits.flatMap((c) => c.files));
           const untracked = all.filter((f) => !committed.has(f) && !r.staged.includes(f));
-          if (r.staged.length) { line('要提交的变更:'); r.staged.forEach((f) => line(`\t新文件:   ${f}`)); }
-          if (untracked.length) { line('未跟踪的文件:'); untracked.forEach((f) => line(`\t${f}`)); }
-          if (!r.staged.length && !untracked.length) line('无文件要提交，干净的工作区');
+          if (r.staged.length) { line(t('app.term2.1b668cda036f')); r.staged.forEach((f) => line(t('app.term.newFile', { f }))); }
+          if (untracked.length) { line(t('ui.4f4da84a7982')); untracked.forEach((f) => line(`\t${f}`)); }
+          if (!r.staged.length && !untracked.length) line(t('ui.365a5fd0c262'));
         } else if (sub === 'add') {
           const t = args[1];
-          if (!t) { line('用法: git add <文件|.>'); return; }
+          if (!t) { line(t('app.term2.c5f3dfa3e6bc')); return; }
           const files = t === '.' || t === '-A'
             ? (VFS.list(root) || []).filter((n) => n !== '.git')
             : [t];
@@ -241,16 +247,16 @@
           saveRepo(r);
         } else if (sub === 'commit') {
           const m = raw.match(/-m\s+"([^"]+)"|-m\s+(\S+)/);
-          if (!m) { line('用法: git commit -m "信息"'); return; }
-          if (!r.staged.length) { line('无文件要提交（先 git add）'); return; }
+          if (!m) { line(t('ui.4da0a949594b')); return; }
+          if (!r.staged.length) { line(t('ui.e86595954300')); return; }
           const h = hash();
           r.commits.push({ hash: h, msg: m[1] || m[2], files: r.staged.slice(), ts: Date.now() });
           line(`[${r.branch} ${h}] ${m[1] || m[2]}`);
-          line(` ${r.staged.length} 个文件已更改`);
+          line(t('app.term.changed', { n: r.staged.length }));
           r.staged = [];
           saveRepo(r);
         } else if (sub === 'log') {
-          if (!r.commits.length) { line('尚无提交'); return; }
+          if (!r.commits.length) { line(t('ui.a9b42763e563')); return; }
           r.commits.slice().reverse().forEach((c) => {
             line(`commit ${c.hash} (HEAD -> ${r.branch})`);
             line(`Date: ${new Date(c.ts).toString().slice(0, 24)}`);
@@ -261,18 +267,18 @@
         } else if (sub === 'remote') {
           if (args[1] === 'add') { r.remotes[args[2] || 'origin'] = args[3] || 'git@github.com:roll/repo.git'; saveRepo(r); }
           else Object.entries(r.remotes).forEach(([n, u]) => line(`${n}\t${u} (push)`));
-          if (!Object.keys(r.remotes).length && args[1] !== 'add') line('（无远程仓库，用 git remote add origin <url> 添加）');
+          if (!Object.keys(r.remotes).length && args[1] !== 'add') line(t('app.term.noRemote'));
         } else if (sub === 'push') {
           const remoteName = args.filter((a) => !a.startsWith('-'))[1] || 'origin';
           const url = r.remotes[remoteName] || (r.remotes[remoteName] = 'git@github.com:roll/macos-web.git', saveRepo(r), r.remotes[remoteName]);
-          if (!r.commits.length) { line('error: 没有可推送的提交'); return; }
+          if (!r.commits.length) { line(t('ui.ce7eef9ffda0')); return; }
           const objs = r.commits.length * 3;
-          line(`枚举对象中: ${objs}, 完成.`);
+          line(t('app.term.enumObjs', { n: objs }));
           const steps = [
-            `对象计数中: 100% (${objs}/${objs}), 完成.`,
-            `使用 ${System.HW.cores} 个线程进行压缩`,
-            `压缩对象中: 100% (${objs - 1}/${objs - 1}), 完成.`,
-            `写入对象中: 100% (${objs}/${objs}), ${(objs * 1.7).toFixed(1)} KiB | 2.1 MiB/s, 完成.`,
+            t('app.term.countObjs', { a: objs, b: objs }),
+            t('app.term.compressThreads', { n: System.HW.cores }),
+            t('app.term.compressObjs', { a: objs - 1, b: objs - 1 }),
+            t('app.term.writeObjs', { a: objs, b: objs, size: (objs * 1.7).toFixed(1) }),
             `To ${url}`,
             ` * [new branch]      ${r.branch} -> ${r.branch}`,
           ];
@@ -282,15 +288,15 @@
         } else if (sub === 'clone') {
           const url = args[1] || 'https://github.com/roll/demo.git';
           const name = url.split('/').pop().replace(/\.git$/, '') || 'repo';
-          line(`正在克隆到 '${name}'...`);
+          line(t('app.term.cloning', { name }));
           setTimeout(() => {
             VFS.mkdir(cwd + '/' + name);
             VFS.mkdir(cwd + '/' + name + '/.git');
             VFS.writeFile(cwd + '/' + name + '/README.md', `# ${name}\n\ncloned from ${url}\n`);
             localStorage.setItem('macweb.git.' + VFS.normalize(cwd + '/' + name), JSON.stringify({ branch: 'main', staged: [], commits: [{ hash: 'a1b2c3d', msg: 'initial commit', files: ['README.md'], ts: Date.now() }], remotes: { origin: url } }));
-            line(`接收对象中: 100% (3/3), 完成.`);
+            line(t('app.term.recvObjs'));
           }, 600);
-        } else line(`git: '${sub}' 不是 git 命令`);
+        } else line(t('app.term.notGit', { sub }));
       },
     };
 
@@ -298,7 +304,7 @@
     function remoteExec(raw) {
       const parts = raw.split(/\s+/);
       const cmd = parts[0];
-      const rfs = { 'projects': 'dir', 'logs': 'dir', 'deploy.sh': '#!/bin/bash\necho "deploying macos-web to prod..."\nrsync -av build/ /var/www/', 'motd.txt': `欢迎来到 ${remote.host}\n这是一台模拟的远程主机。` };
+      const rfs = { 'projects': 'dir', 'logs': 'dir', 'deploy.sh': '#!/bin/bash\necho "deploying macos-web to prod..."\nrsync -av build/ /var/www/', 'motd.txt': `Welcome to ${remote.host}\nThis is a simulated remote host.` };
       switch (cmd) {
         case 'ls': line(Object.keys(rfs).map((k) => rfs[k] === 'dir' ? k + '/' : k).join('  ')); break;
         case 'pwd': line(`/home/${remote.user}`); break;
@@ -308,12 +314,12 @@
         case 'uptime': line(' up 247 days, 3 users, load average: 0.08, 0.03, 0.01'); break;
         case 'cat': {
           const f = rfs[parts[1]];
-          line(f && f !== 'dir' ? f : `cat: ${parts[1] || ''}: 没有那个文件`); break;
+          line(f && f !== 'dir' ? f : `cat: ${parts[1] || ''}: ${t('app.term2.9f699dde9955')}`); break;
         }
         case 'echo': line(parts.slice(1).join(' ')); break;
         case 'exit': case 'logout': commands.exit(); break;
         case '': break;
-        default: line(`-bash: ${cmd}: command not found (远程主机只有基础命令，exit 可返回)`);
+        default: line(t('app.term.remoteOnly', { cmd }));
       }
     }
 
@@ -355,8 +361,8 @@
             const cmd = parts[0];
             if (commands[cmd]) commands[cmd](parts.slice(1), raw);
             else line(shellName === 'zsh'
-              ? `zsh: command not found: ${cmd}（输入 help 查看命令）`
-              : `-${shellName}: ${cmd}: command not found（输入 help 查看命令）`);
+              ? `zsh: command not found: ${cmd}（${t('app.term2.1e02e35d8d02')}）`
+              : `-${shellName}: ${cmd}: command not found（${t('app.term2.1e02e35d8d02')}）`);
           }
         }
         refreshPrompt();
@@ -419,7 +425,7 @@
       term.dataset.cursorStyle = cursorStyle;
       term.classList.toggle('cursor-steady', preferences.cursorBlink === false);
       if (win) {
-        win._title.textContent = `终端 — ${shellName} — 80×24`;
+        win._title.textContent = `${t('app.term2.6b73a51bf6cb')} — ${shellName} — 80×24`;
         win._body.style.background = background;
       }
       refreshPrompt();
@@ -434,11 +440,11 @@
 
     applyPreferences();
     line('Last login: ' + new Date().toDateString() + ' on console');
-    line('Welcome to Mac OS X Leopard (Web)。输入 help 查看命令。');
+    line(t('ui.359d4b1bc3fc'));
     refreshPrompt();
 
     win = System.createWindow({
-      app: 'terminal', title: `终端 — ${shellName} — 80×24`,
+      app: 'terminal', title: `${t('app.term2.6b73a51bf6cb')} — ${shellName} — 80×24`,
       width: 580, height: 380, content: term,
       onClose:() => {
         document.removeEventListener('app-preferences-changed', preferencesChanged);
@@ -454,8 +460,8 @@
   }
 
   System.registerApp({
-    id: 'terminal', name: '终端', icon, open, multiWindow: true,
-    about: '模拟 bash：ls/cd/cat/echo/mkdir/rm… 操作的是与 Finder 共享的虚拟文件系统。',
-    keywords: 'terminal shell bash 终端 命令',
+    id: 'terminal', name: t('ui.7f55a26d7dda'), icon, open, multiWindow: true,
+    about: t('ui.5a480127118d'),
+    keywords: t('ui.e5a16298a4ef'),
   });
 })();

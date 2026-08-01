@@ -1,3 +1,6 @@
+import { System } from '../system/index.js';
+import { t } from '../i18n/index.js';
+
 // OpenGL 演示 (Quartz Extreme) — WebGL2-first hardware-accelerated cube + refresh telemetry
 (() => {
   const { el, HW } = System;
@@ -92,7 +95,7 @@
 
     const win = System.createWindow({
       app: 'opengl',
-      title: 'OpenGL — Quartz Extreme 演示',
+      title: t('ui.b32fa6443c55'),
       width: 560,
       height: 440,
       content: wrap,
@@ -116,10 +119,10 @@
     if (!gl) {
       gl = canvas.getContext('webgl', contextAttributes)
         || canvas.getContext('experimental-webgl', contextAttributes);
-      backend = gl ? 'WebGL 1.0 兼容' : '';
+      backend = gl ? t('ui.136c23d7d7a0') : '';
     }
     if (!gl) {
-      wrap.innerHTML = '<div style="color:#f88;padding:40px;text-align:center">此浏览器不支持 WebGL — 无法演示硬件加速。</div>';
+      wrap.innerHTML = `<div style="color:#f88;padding:40px;text-align:center">${t('app.gl.noSupport')}</div>`;
       return;
     }
     loseContextExtension = gl.getExtension('WEBGL_lose_context');
@@ -225,7 +228,7 @@
 
     function updateHud() {
       const refreshHz = 1000 / Math.max(0.01, frameIntervalEwma);
-      hud.innerHTML = `<b>${Math.round(refreshHz)} Hz</b> · ${backend} · DPR ${pixelRatio.toFixed(2)}<br>${HW.gpu}<br>${renderCostEwma.toFixed(2)} ms / 帧 · ${gl.getParameter(gl.VERSION)}`;
+      hud.innerHTML = `<b>${Math.round(refreshHz)} Hz</b> · ${backend} · DPR ${pixelRatio.toFixed(2)}<br>${HW.gpu}<br>${t('app.gl.hudFrame', { ms: renderCostEwma.toFixed(2), ver: gl.getParameter(gl.VERSION) })}`;
       wrap.dataset.renderer = backend.startsWith('WebGL 2') ? 'webgl2' : 'webgl';
       wrap.dataset.rafHz = refreshHz.toFixed(1);
       wrap.dataset.renderMs = renderCostEwma.toFixed(2);
@@ -268,7 +271,7 @@
       event.preventDefault();
       contextLost = true;
       wrap.dataset.renderer = 'lost';
-      hud.innerHTML = '<b>GRAPHICS INTERRUPTED</b><br>正在恢复 WebGL 图形环境…';
+      hud.innerHTML = `<b>GRAPHICS INTERRUPTED</b><br>${t('app.gl.restoring')}`;
     }
 
     function onContextRestored() {
@@ -279,7 +282,7 @@
         initResources();
         contextLost = false;
         fit();
-        System.syslog(`图形上下文已恢复: ${backend}`, 'WindowServer');
+        System.syslog(t('app.gl.restored', { backend }), 'WindowServer');
       } catch (error) {
         running = false;
         hud.innerHTML = `<b>GRAPHICS ERROR</b><br>${error.message}`;
@@ -304,7 +307,7 @@
       initResources();
     } catch (error) {
       running = false;
-      wrap.innerHTML = `<div style="color:#f88;padding:40px;text-align:center">图形着色器初始化失败：${error.message}</div>`;
+      wrap.innerHTML = `<div style="color:#f88;padding:40px;text-align:center">${t('app.gl.shaderFail', { msg: error.message })}</div>`;
       return;
     }
     fit();
@@ -325,15 +328,15 @@
       loseContextForTest: () => loseContextExtension?.loseContext(),
       restoreContextForTest: () => loseContextExtension?.restoreContext(),
     };
-    System.syslog(`${backend} 高性能上下文已创建: ${HW.gpu}`, 'WindowServer');
+    System.syslog(t('app.gl.created', { backend, gpu: HW.gpu }), 'WindowServer');
   }
 
   System.registerApp({
     id: 'opengl',
-    name: 'OpenGL 演示',
+    name: t('ui.1bca6f8c35f3'),
     icon,
     open,
-    about: 'WebGL2 优先的硬件加速旋转立方体，支持高刷新率、Retina 像素预算、上下文恢复与实时渲染诊断。',
-    keywords: 'opengl webgl webgl2 quartz gpu 硬件加速 3d 高刷新率',
+    about: t('ui.8f516d79ee9d'),
+    keywords: t('ui.3c6ed87c1772'),
   });
 })();

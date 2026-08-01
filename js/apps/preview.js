@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // 预览 (Preview) — a document-bound Leopard image/PDF viewer.
 (() => {
   const { el } = System;
@@ -20,7 +26,7 @@
     if (!arg?.src) return;
     const a = document.createElement('a');
     a.href = arg.src;
-    a.download = arg.name || '预览文稿';
+    a.download = arg.name || t('ui.3aeecfdaf7a1');
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -54,7 +60,7 @@
 
   function chooseDocument(parent) {
     System.openPanel({
-      parent, title: '打开文稿', startPath: '/用户/roll/图片',
+      parent, title: t('ui.af5b1c2db6f3'), startPath: paths.pictures,
       types: ['png','jpg','jpeg','gif','svg','webp','pdf'], allowUpload: true,
       onOpen: openPath,
     });
@@ -63,27 +69,27 @@
   function openInspector(arg, meta) {
     const node = arg.node || (arg.path ? VFS.get(arg.path) : null);
     const formatBytes = (bytes) => {
-      if (bytes < 1024) return `${bytes} 字节`;
+      if (bytes < 1024) return `${bytes} ${t('app.pv2.68e65be8a361')}`;
       if (bytes < 1048576) return `${(bytes / 1024).toFixed(bytes < 10240 ? 1 : 0)} KB`;
       return `${(bytes / 1048576).toFixed(1)} MB`;
     };
     const measuredSize = node && arg.path ? VFS.sizeOf(arg.path) : 0;
     const sizeLabel = node
       ? (!measuredSize && typeof node.src === 'string' && !node.src.startsWith('data:') && node.content == null)
-        ? '大小未知' : formatBytes(measuredSize)
+        ? t('ui.4f6367e8d5cd') : formatBytes(measuredSize)
       : '—';
     const pane = el('div', 'preview-inspector');
     const rows = [
-      ['名称', arg.name || '未命名'],
-      ['种类', arg.kind === 'pdf' ? 'PDF 文稿' : (meta.type || '图像文稿')],
-      ['尺寸', meta.width ? `${meta.width} × ${meta.height} 像素` : '—'],
-      ['文件大小', sizeLabel],
-      ['修改时间', Number.isFinite(node?.modifiedAt) ? new Date(node.modifiedAt).toLocaleString('zh-CN') : '—'],
-      ['位置', arg.path || '内存中的文稿'],
-      ['缩放', `${Math.round(meta.scale * 100)}%`],
-      ['方向', `${meta.rotation}°`],
+      [t('ui.1be7ae4fc257'), arg.name || t('ui.35563060dc88')],
+      [t('ui.2da1825912c4'), arg.kind === 'pdf' ? t('ui.0d68043ba5ee') : (meta.type || t('ui.baa73dd3288b'))],
+      [t('app.pv2.ae9b10944115'), meta.width ? `${meta.width} × ${meta.height} ${t('app.pv2.190e6793487b')}` : '—'],
+      [t('ui.2ad8b0b96fec'), sizeLabel],
+      [t('ui.af71bc5cc4e3'), Number.isFinite(node?.modifiedAt) ? new Date(node.modifiedAt).toLocaleString('zh-CN') : '—'],
+      [t('ui.88c34452cc46'), arg.path || t('ui.710c5f18f08c')],
+      [t('ui.12e2ed4d508a'), `${Math.round(meta.scale * 100)}%`],
+      [t('app.pv2.a88bddf77095'), `${meta.rotation}°`],
     ];
-    pane.innerHTML = '<header><b>一般信息</b><span>ⓘ</span></header>';
+    pane.innerHTML = `<header><b>${t('app.pv2.1f85ed8b6264')}</b><span>ⓘ</span></header>`;
     const dl = el('dl');
     rows.forEach(([key, value]) => {
       const dt = el('dt', '', key);
@@ -92,7 +98,7 @@
     });
     pane.appendChild(dl);
     System.createWindow({
-      app: 'preview', title: '检查器', width: 350, height: 370,
+      app: 'preview', title: t('app.pv2.6b539247e570'), width: 350, height: 370,
       content: pane, noResize: true, bodyBg: '#ececec',
       autoFitContent:{ minHeight:250, maxHeight:500 },
     });
@@ -100,12 +106,12 @@
 
   function emptyPreview() {
     const root = el('div', 'preview-empty');
-    root.innerHTML = `<div>${icon}</div><h2>没有打开的文稿</h2><p>在 Finder 中双击图像或 PDF 文稿，即可使用“预览”打开。</p>`;
-    const openButton = el('button', 'aqua-btn default', '打开…');
+    root.innerHTML = `<div>${icon}</div><h2>${t('app.pv2.d7958ab9d18a')}</h2><p>${t('app.pv2.dd7f3199060b')}</p>`;
+    const openButton = el('button', 'aqua-btn default', t('ui.7e736d9399d0'));
     root.appendChild(openButton);
     const win = System.createWindow({
-      app: 'preview', title: '预览', width: 680, height: 480,
-      content: root, statusbar: '从 Finder 打开文稿',
+      app: 'preview', title: t('ui.de61aa8e1cbc'), width: 680, height: 480,
+      content: root, statusbar: t('ui.ddb8539c5651'),
     });
     openButton.addEventListener('click', () => chooseDocument(win));
     win.addEventListener('leopard-command', (event) => {
@@ -122,7 +128,7 @@
     sidebar.appendChild(thumb);
     const canvas = el('main', 'preview-canvas');
     const frame = el('iframe', 'preview-pdf-frame');
-    frame.title = arg.name || 'PDF 文稿';
+    frame.title = arg.name || t('ui.0d68043ba5ee');
     frame.src = arg.src;
     canvas.appendChild(frame);
     root.append(sidebar, canvas);
@@ -130,9 +136,9 @@
     canvas.style.backgroundColor = preferences.backgroundColor || '#5b5b5b';
 
     const toolbar = el('div', 'preview-toolbar');
-    const sideButton = button('▤', '显示或隐藏侧栏');
-    const inspector = button('ⓘ', '显示检查器');
-    const exportButton = button('⇩', '下载到本地');
+    const sideButton = button('▤', t('ui.d69cfbf99262'));
+    const inspector = button('ⓘ', t('ui.3d6178edd1b4'));
+    const exportButton = button('⇩', t('ui.6e5878b89d9a'));
     const spacer = el('i', 'preview-toolbar-spacer');
     toolbar.append(sideButton, spacer, inspector, exportButton);
     sideButton.addEventListener('click', () => root.classList.toggle('sidebar-hidden'));
@@ -145,9 +151,9 @@
     };
     document.addEventListener('app-preferences-changed', preferencesChanged);
     const win = System.createWindow({
-      app: 'preview', title: `预览 — ${arg.name || 'PDF 文稿'}`,
+      app: 'preview', title: `${t('app.pv2.e0757d1f1848')} — ${arg.name || t('ui.0d68043ba5ee')}`,
       width: 820, height: 600, toolbar, content: root,
-      statusbar: '第 1 页，共 1 页',
+      statusbar: t('ui.6590bae05e85'),
       onClose:() => {
         document.removeEventListener('app-preferences-changed', preferencesChanged);
         frame.src = 'about:blank';
@@ -189,7 +195,7 @@
     const documentWrap = el('div', 'preview-image-wrap');
     const image = el('img', 'preview-document');
     image.src = arg.src;
-    image.alt = arg.name || '图像';
+    image.alt = arg.name || t('ui.0a0ce84ddefc');
     image.draggable = false;
     documentWrap.appendChild(image);
     scroller.appendChild(documentWrap);
@@ -200,15 +206,15 @@
     image.style.imageRendering = preferences.smoothImages === false ? 'pixelated' : 'auto';
 
     const toolbar = el('div', 'preview-toolbar');
-    const sideButton = button('▤', '显示或隐藏侧栏');
-    const zoomOut = button('−', '缩小');
-    const zoomIn = button('+', '放大');
-    const fit = button('▣', '缩放以适合窗口');
-    const actual = button('1:1', '实际大小', 'text');
-    const rotateLeft = button('↶', '向左旋转');
-    const rotateRight = button('↷', '向右旋转');
-    const inspector = button('ⓘ', '显示检查器');
-    const exportButton = button('⇩', '下载到本地');
+    const sideButton = button('▤', t('ui.d69cfbf99262'));
+    const zoomOut = button('−', t('ui.11f8516f82b1'));
+    const zoomIn = button('+', t('ui.d7f48a059cf3'));
+    const fit = button('▣', t('ui.be89b40223ed'));
+    const actual = button('1:1', t('ui.6ef49ec0bedf'), 'text');
+    const rotateLeft = button('↶', t('app.pv2.8d7e57382906'));
+    const rotateRight = button('↷', t('app.pv2.134de623e56c'));
+    const inspector = button('ⓘ', t('ui.3d6178edd1b4'));
+    const exportButton = button('⇩', t('ui.6e5878b89d9a'));
     const zoomLabel = el('span', 'preview-zoom', '100%');
     const spacer = el('i', 'preview-toolbar-spacer');
     toolbar.append(sideButton, zoomOut, zoomIn, fit, actual, rotateLeft, rotateRight, zoomLabel, spacer, inspector, exportButton);
@@ -217,7 +223,7 @@
       zoomLabel.textContent = `${Math.round(scale * 100)}%`;
       if (win) {
         win.querySelector('.win-statusbar').textContent =
-          `${naturalWidth || '—'} × ${naturalHeight || '—'} 像素  ·  ${Math.round(scale * 100)}%`;
+          `${naturalWidth || '—'} × ${naturalHeight || '—'} ${t('app.pv2.190e6793487b')}  ·  ${Math.round(scale * 100)}%`;
       }
     };
     const applyTransform = () => {
@@ -263,7 +269,7 @@
     actual.addEventListener('click', () => setScale(1, true));
     rotateLeft.addEventListener('click', () => rotate(-90));
     rotateRight.addEventListener('click', () => rotate(90));
-    inspector.addEventListener('click', () => openInspector(arg, { width: naturalWidth, height: naturalHeight, scale, rotation, type: image.currentSrc.startsWith('data:') ? '图像（内存）' : '图像' }));
+    inspector.addEventListener('click', () => openInspector(arg, { width: naturalWidth, height: naturalHeight, scale, rotation, type: image.currentSrc.startsWith('data:') ? t('ui.e64994a247c7') : t('ui.0a0ce84ddefc') }));
     exportButton.addEventListener('click', () => download(arg));
     canvas.addEventListener('wheel', (event) => {
       if (!event.ctrlKey && !event.metaKey) return;
@@ -298,7 +304,7 @@
     }, { once: true });
     image.addEventListener('error', () => {
       canvas.classList.add('preview-error');
-      canvas.textContent = '无法读取这个图像。';
+      canvas.textContent = t('ui.47c94b8e1f59');
     }, { once: true });
 
     const preferencesChanged = (event) => {
@@ -309,8 +315,8 @@
     };
     document.addEventListener('app-preferences-changed', preferencesChanged);
     win = System.createWindow({
-      app: 'preview', title: `预览 — ${arg.name || '图像'}`,
-      width: 820, height: 590, toolbar, content: root, statusbar: '正在读取图像…',
+      app: 'preview', title: `${t('app.pv2.e0757d1f1848')} — ${arg.name || t('ui.0a0ce84ddefc')}`,
+      width: 820, height: 590, toolbar, content: root, statusbar: t('ui.60144cc4bb25'),
       onClose:() => {
         document.removeEventListener('app-preferences-changed', preferencesChanged);
         image.src = '';
@@ -347,7 +353,7 @@
     if (!arg?.src && !arg?.path) return emptyPreview();
     const documentArg = resolveDocument(arg);
     if (!documentArg) {
-      System.alertBox('预览', '找不到该文稿，或者文稿内容已不可用。');
+      System.alertBox(t('ui.de61aa8e1cbc'), t('ui.c42a149f9846'));
       return emptyPreview();
     }
     if (documentArg.path) System.addRecentDocument?.(documentArg.path, 'preview');
@@ -356,8 +362,8 @@
   }
 
   System.registerApp({
-    id: 'preview', name: '预览', icon, open, multiWindow: true,
-    about: 'Leopard 风格的单文稿查看器：缩放、适合窗口、旋转、检查器、PDF 与下载。',
-    keywords: 'preview 预览 图片 image pdf zoom rotate',
+    id: 'preview', name: t('ui.de61aa8e1cbc'), icon, open, multiWindow: true,
+    about: t('ui.cf011c183e37'),
+    keywords: t('ui.6f04f4f9ed65'),
   });
 })();

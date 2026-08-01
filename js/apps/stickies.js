@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // Stickies — Leopard floating rich-text notes with import, export, search and arrangement.
 (() => {
   const { el } = System;
@@ -5,12 +11,12 @@
   const legacyKey = 'macweb.stickies.v1';
   const templateKey = 'macweb.stickies.template';
   const colors = {
-    yellow:{name:'黄色',paper:'#fff7a8',edge:'#c6b54e',ink:'#302b16'},
-    blue:{name:'蓝色',paper:'#cfe9ff',edge:'#79a8ca',ink:'#173247'},
-    green:{name:'绿色',paper:'#d8f5c7',edge:'#83b86c',ink:'#20351a'},
-    pink:{name:'粉红色',paper:'#ffd6e5',edge:'#c98aa2',ink:'#47202f'},
-    purple:{name:'紫色',paper:'#e5d6ff',edge:'#9b84c5',ink:'#302444'},
-    gray:{name:'灰色',paper:'#e4e4e4',edge:'#9c9c9c',ink:'#292929'},
+    yellow:{name:t('ui.c33860af15c4'),paper:'#fff7a8',edge:'#c6b54e',ink:'#302b16'},
+    blue:{name:t('ui.43f2550e7e3d'),paper:'#cfe9ff',edge:'#79a8ca',ink:'#173247'},
+    green:{name:t('ui.81dd83dcbee5'),paper:'#d8f5c7',edge:'#83b86c',ink:'#20351a'},
+    pink:{name:t('ui.c0f8347c65ef'),paper:'#ffd6e5',edge:'#c98aa2',ink:'#47202f'},
+    purple:{name:t('ui.df52498f5046'),paper:'#e5d6ff',edge:'#9b84c5',ink:'#302444'},
+    gray:{name:t('ui.5996c71fae9f'),paper:'#e4e4e4',edge:'#9c9c9c',ink:'#292929'},
   };
   const icon = `<svg viewBox="0 0 64 64"><defs><linearGradient id="stb" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e4f3ff"/><stop offset="1" stop-color="#98c9ec"/></linearGradient><linearGradient id="sty" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffbd0"/><stop offset="1" stop-color="#f2df69"/></linearGradient></defs><rect x="7" y="16" width="41" height="40" rx="2" fill="url(#sty)" stroke="#b5a33f" stroke-width="1.5" transform="rotate(-5 27 36)"/><rect x="17" y="9" width="41" height="41" rx="2" fill="url(#stb)" stroke="#6f9cc3" stroke-width="1.5" transform="rotate(3 38 29)"/><g transform="rotate(3 38 29)" stroke="#7da7ca" stroke-width="1.4"><path d="M23 21h29M23 29h29M23 37h23"/></g></svg>`;
 
@@ -36,7 +42,7 @@
         if (!allowedFont && !allowedImage && !allowedLink) node.removeAttribute(attribute.name);
       });
       if (node.tagName === 'IMG') {
-        node.alt = '便笺图像';
+        node.alt = t('ui.be69301885fe');
         node.draggable = false;
       }
       if (node.tagName === 'A') node.target = '_blank';
@@ -52,7 +58,7 @@
     container.innerHTML = markup;
     return (container.textContent || '').replace(/\n{3,}/g,'\n\n').trimEnd();
   };
-  const firstLine = (note) => (plainText(note.html).split('\n').find((line) => line.trim()) || '新便笺').trim().slice(0,48);
+  const firstLine = (note) => (plainText(note.html).split('\n').find((line) => line.trim()) || t('app.st2.b5eb3e64f05c')).trim().slice(0,48);
   const timestampLabel = (value) => new Date(value || Date.now()).toLocaleString('zh-CN');
 
   let notes = null;
@@ -70,7 +76,7 @@
       w:note.w || 250,h:note.h || 190,
     };
     localStorage.setItem(templateKey,JSON.stringify(value));
-    Leopard.toast('便笺','当前便笺样式已设为默认。');
+    Leopard.toast(t('ui.7e4831a8a359'),t('app.st2.dd7dbb7d286c'));
   };
   const normalizeNote = (note,index = 0) => ({
     id:Number(note.id) || Date.now()+index,
@@ -94,9 +100,9 @@
     }
     const now = Date.now();
     return [
-      normalizeNote({id:1,color:'green',x:68,y:70,w:278,h:210,created:now,modified:now,html:'<b>欢迎使用便笺</b><br><br>便笺可以保存提醒、列表和常用文字。内容会自动存储。'}),
-      normalizeNote({id:2,color:'yellow',x:325,y:118,w:265,h:205,created:now,modified:now,html:'<b>Leopard 小技巧</b><br><br>双击标题栏可收起；也可以设为浮动窗口或半透明。<br><br>按 ⌘N 新建便笺。'}),
-      normalizeNote({id:3,color:'pink',x:545,y:78,w:245,h:180,created:now,modified:now,html:'<b>支持的内容</b><br><br>• 富文本样式<br>• 项目列表<br>• 拖入图像<br>• 查找与导入导出'}),
+      normalizeNote({id:1,color:'green',x:68,y:70,w:278,h:210,created:now,modified:now,html:`<b>${t('app.st2.36ec23dcb8c6')}</b><br><br>${t('app.st2.2c5e7ccc5090')}`}),
+      normalizeNote({id:2,color:'yellow',x:325,y:118,w:265,h:205,created:now,modified:now,html:t('app.st.tipsHtml')}),
+      normalizeNote({id:3,color:'pink',x:545,y:78,w:245,h:180,created:now,modified:now,html:`<b>${t('app.st2.fcb2cb3cfaff')}</b><br><br>${t('app.st2.20e78dd66fd2')}<br>${t('app.st2.208bc72c1a35')}<br>${t('app.st2.c65a98b8f03a')}<br>${t('app.st2.bbb97cab1fca')}`}),
     ];
   };
   const save = () => {
@@ -125,7 +131,7 @@
   const updateTitle = (record) => {
     const title = firstLine(record.note);
     record.win._title.textContent = title;
-    record.win.querySelector('.titlebar').title = `创建：${timestampLabel(record.note.created)}\n修改：${timestampLabel(record.note.modified)}`;
+    record.win.querySelector('.titlebar').title = t('app.st.createdMod2', { c: timestampLabel(record.note.created), m: timestampLabel(record.note.modified) });
   };
   const updateWindowState = (record) => {
     const { win,note,editor } = record;
@@ -253,7 +259,7 @@
   };
   const findNext = (direction = 1,status,ownerWindow) => {
     if (!findState.matches.length) {
-      if (status) status.textContent = '没有找到匹配文字。';
+      if (status) status.textContent = t('ui.1f95e3e91611');
       return System.beep();
     }
     findState.index = (findState.index + direction + findState.matches.length) % findState.matches.length;
@@ -262,30 +268,30 @@
     if (match.record.note.collapsed) toggleCollapsed(match.record,false);
     selectOccurrence(match.record.editor,match.start,match.length);
     if (ownerWindow?.isConnected && ownerWindow !== match.record.win) System.focusWindow(ownerWindow);
-    if (status) status.textContent = `第 ${findState.index+1} 项，共 ${findState.matches.length} 项`;
+    if (status) status.textContent = t('ui.findNth', { i: findState.index+1, n: findState.matches.length });
   };
   const showFind = () => {
     const record = activeRecord();
     if (!record) return;
     const pane = el('div','stickies-find');
-    pane.innerHTML = `<label><span>查找：</span><input class="aqua-input stickies-find-query"></label><label><span>范围：</span><select class="spp-select stickies-find-scope"><option value="all">所有便笺</option><option value="current">当前便笺</option></select></label><p>输入文字后使用“上一个”或“下一个”浏览结果。</p><output></output>`;
+    pane.innerHTML = `<label><span>${t('app.st2.74292ba37c4d')}</span><input class="aqua-input stickies-find-query"></label><label><span>${t('app.st2.1f89e3f54f52')}</span><select class="spp-select stickies-find-scope"><option value="all">${t('app.st2.7af412d551e5')}</option><option value="current">${t('app.st2.bd18752451d5')}</option></select></label><p>${t('app.st2.027dc101a66e')}</p><output></output>`;
     const query = pane.querySelector('.stickies-find-query');
     const scope = pane.querySelector('.stickies-find-scope');
     const status = pane.querySelector('output');
     query.value = findState.query;
     const update = () => {
       rebuildFindMatches(query.value,scope.value);
-      status.textContent = query.value ? `找到 ${findState.matches.length} 项` : '请输入要查找的文字。';
+      status.textContent = query.value ? t('ui.findFound', { n: findState.matches.length }) : t('ui.7f7f5b825514');
     };
     query.addEventListener('input',update);
     scope.addEventListener('change',update);
     update();
     System.showSheet({
-      parent:record.win,title:'查找',content:pane,className:'stickies-find-sheet',initialFocus:query,
+      parent:record.win,title:t('ui.6cb005a629ef'),content:pane,className:'stickies-find-sheet',initialFocus:query,
       buttons:[
-        {label:'关闭',cancel:true},
-        {label:'上一个',closes:false,action:() => { if(query.value!==findState.query)update();findNext(-1,status,record.win);return false; }},
-        {label:'下一个',default:true,closes:false,action:() => { if(query.value!==findState.query)update();findNext(1,status,record.win);return false; }},
+        {label:t('ui.6c14bd7f6f9e'),cancel:true},
+        {label:t('ui.57b27163cee2'),closes:false,action:() => { if(query.value!==findState.query)update();findNext(-1,status,record.win);return false; }},
+        {label:t('ui.159a87b9e07f'),default:true,closes:false,action:() => { if(query.value!==findState.query)update();findNext(1,status,record.win);return false; }},
       ],
     });
   };
@@ -318,7 +324,7 @@
   const importText = () => {
     const record = activeRecord();
     System.openPanel({
-      parent:record?.win,title:'导入文本',startPath:'/用户/roll/文稿',
+      parent:record?.win,title:t('ui.f8330d250544'),startPath:paths.documents,
       types:['txt','text','md','rtf','html','htm'],allowUpload:true,
       onOpen:async(path) => {
         const node = VFS.get(path);
@@ -334,15 +340,15 @@
   const exportNote = () => {
     const record = activeRecord();
     if (!record) return;
-    const name = firstLine(record.note).replace(/[\\/:*?"<>|]/g,'-') || '便笺';
+    const name = firstLine(record.note).replace(/[\\/:*?"<>|]/g,'-') || t('ui.7e4831a8a359');
     System.savePanel({
-      parent:record.win,title:'导出文本',startPath:'/用户/roll/文稿',
-      name:VFS.uniqueName('/用户/roll/文稿',name,'.txt'),extension:'txt',typeLabel:'纯文本文稿',allowOverwrite:true,
+      parent:record.win,title:t('ui.ecbeb5d4451f'),startPath:paths.documents,
+      name:VFS.uniqueName(paths.documents,name,'.txt'),extension:'txt',typeLabel:t('ui.0373f454fa15'),allowOverwrite:true,
       onSave:(path) => {
         const savedNode = VFS.putNode(path,{type:'file',kind:'document',mime:'text/plain',content:`${record.editor.innerText}\n`,creator:'stickies',generated:true});
         if (savedNode) {
           System.addRecentDocument?.(path,'stickies');
-          Leopard.toast('便笺',`“${VFS.baseName(path)}”已导出。`);
+          Leopard.toast(t('ui.7e4831a8a359'), t('app.st.exported', { name: VFS.baseName(path) }));
         }
         return savedNode;
       },
@@ -350,10 +356,10 @@
   };
   const exportAll = () => {
     const record = activeRecord();
-    const content = notes.map((note,index) => `===== 便笺 ${index+1} · ${firstLine(note)} =====\n${plainText(note.html)}\n`).join('\n');
+    const content = notes.map((note,index) => `${t('app.st.header', { n: index+1, title: firstLine(note) })}\n${plainText(note.html)}\n`).join('\n');
     System.savePanel({
-      parent:record?.win,title:'导出所有便笺',startPath:'/用户/roll/文稿',
-      name:VFS.uniqueName('/用户/roll/文稿','所有便笺','.txt'),extension:'txt',typeLabel:'纯文本文稿',allowOverwrite:true,
+      parent:record?.win,title:t('app.st2.9d2004aa6a1e'),startPath:paths.documents,
+      name:VFS.uniqueName(paths.documents,t('ui.715da6bad29b'),'.txt'),extension:'txt',typeLabel:t('ui.0373f454fa15'),allowOverwrite:true,
       onSave:(path) => VFS.putNode(path,{type:'file',kind:'document',mime:'text/plain',content,creator:'stickies',generated:true}),
     });
   };
@@ -386,9 +392,9 @@
   const deleteNote = (record) => {
     if (!record) return;
     System.confirmSheet({
-      parent:record.win,headline:`删除便笺“${firstLine(record.note)}”？`,
-      message:'这会删除便笺内容。已导出的文本文件不会受到影响。',
-      okLabel:'删除便笺',danger:true,onOK:() => {
+      parent:record.win,headline:t('app.st.deleteQ', { title: firstLine(record.note) }),
+      message:t('ui.f70b1f067666'),
+      okLabel:t('ui.ca3e5a2ba39c'),danger:true,onOK:() => {
         record.note.deleting = true;
         System.closeWindow(record.win);
       },
@@ -401,7 +407,7 @@
     editor.contentEditable = 'true';
     editor.setAttribute('role','textbox');
     editor.setAttribute('aria-multiline','true');
-    editor.setAttribute('aria-label','便笺内容');
+    editor.setAttribute('aria-label',t('app.st2.86f8f95afe4c'));
     editor.spellcheck = true;
     editor.innerHTML = safeHtml(note.html);
     body.appendChild(editor);
@@ -431,9 +437,9 @@
     win.style.minHeight = '23px';
     const titlebar = win.querySelector('.titlebar');
     const collapseButton = el('button','sticky-title-control collapse','—');
-    collapseButton.title = '收起/展开便笺';
+    collapseButton.title = t('app.st2.fe859eea681e');
     const zoomButton = el('button','sticky-title-control zoom','◇');
-    zoomButton.title = '缩放便笺';
+    zoomButton.title = t('ui.da7bdbff8042');
     titlebar.append(collapseButton,zoomButton);
     const record = {note,win,editor};
     openNotes.set(note.id,record);
@@ -473,7 +479,7 @@
       if (!file) return;
       event.preventDefault();
       if (file.size > 1.5*1024*1024) {
-        System.alertBox('图像太大','便笺中的图像必须小于 1.5 MB。');
+        System.alertBox(t('ui.b1038fa8b9f5'),t('ui.b4687f756a47'));
         return;
       }
       const reader = new FileReader();
@@ -572,8 +578,8 @@
   }
 
   System.registerApp({
-    id:'stickies',name:'便笺',icon,open,multiWindow:false,
-    about:'Leopard 风格便笺：富文本、图像、查找、导入导出、颜色、浮动、半透明、收起与排列。',
-    keywords:'stickies 便笺 贴纸 note reminder',
+    id:'stickies',name:t('ui.7e4831a8a359'),icon,open,multiWindow:false,
+    about:t('ui.a42b3258c638'),
+    keywords:t('ui.c6463f1b9156'),
   });
 })();

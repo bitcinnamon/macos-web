@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { t } from '../i18n/index.js';
+import { paths } from '../config.js';
+
 // Calculator — Leopard basic, scientific and programmer modes with paper tape.
 (() => {
   const { el } = System;
@@ -13,22 +19,22 @@
   const normalizeTapeText = (value) => String(value).replaceAll('−', '-').replaceAll('×', '*').replaceAll('÷', '/').replaceAll('π', 'pi').replace(/[^\x20-\x7e]/g, '?');
 
   const conversionGroups = {
-    length:{ name:'长度', units:{ '米':1, '千米':1000, '厘米':.01, '毫米':.001, '英寸':.0254, '英尺':.3048, '码':.9144, '英里':1609.344, '海里':1852 } },
-    area:{ name:'面积', units:{ '平方米':1, '平方千米':1e6, '平方厘米':1e-4, '公顷':1e4, '英亩':4046.8564224, '平方英尺':.09290304 } },
-    volume:{ name:'体积', units:{ '升':1, '毫升':.001, '立方米':1000, '美制加仑':3.785411784, '英制加仑':4.54609, '杯':.2365882365 } },
-    mass:{ name:'质量', units:{ '千克':1, '克':.001, '毫克':1e-6, '公吨':1000, '磅':.45359237, '盎司':.028349523125, '英石':6.35029318 } },
-    speed:{ name:'速度', units:{ '米/秒':1, '千米/小时':1/3.6, '英里/小时':.44704, '节':.5144444444, '英尺/秒':.3048 } },
-    time:{ name:'时间', units:{ '秒':1, '分钟':60, '小时':3600, '天':86400, '周':604800, '年（365 天）':31536000 } },
+    length:{ name:t('ui.a5394989b6a6'), units:{ [t('calc.unit.m')]:1, [t('ui.37cdb08da99c')]:1000, [t('ui.581448d73678')]:.01, [t('ui.5b9738ac6c94')]:.001, [t('ui.df24703b42ba')]:.0254, [t('ui.da22946a4bb3')]:.3048, [t('calc.unit.yd')]:.9144, [t('ui.e7fd6452f098')]:1609.344, [t('ui.573c8f987d21')]:1852 } },
+    area:{ name:t('ui.ac2c28db8769'), units:{ [t('ui.c3dada2ee219')]:1, [t('ui.eb9e8c3f5f92')]:1e6, [t('ui.8ba30e71d5f7')]:1e-4, [t('ui.28213b325f05')]:1e4, [t('ui.2a866d4fde60')]:4046.8564224, [t('ui.e2ec8c4bb82c')]:.09290304 } },
+    volume:{ name:t('ui.a79cfe2dccc2'), units:{ [t('calc.unit.L')]:1, [t('ui.9011ac3e3b58')]:.001, [t('ui.698ebe4e73da')]:1000, [t('ui.2086b9ff6d11')]:3.785411784, [t('ui.28234daa70ea')]:4.54609, [t('calc.unit.cup')]:.2365882365 } },
+    mass:{ name:t('ui.82f516820cfe'), units:{ [t('ui.7083090cfcc4')]:1, [t('calc.unit.g')]:.001, [t('ui.9a52d322d3cc')]:1e-6, [t('ui.b898e67beb1e')]:1000, [t('calc.unit.lb')]:.45359237, [t('ui.ea6c73a6c717')]:.028349523125, [t('ui.bde42d892597')]:6.35029318 } },
+    speed:{ name:t('ui.f2fdffbb9ed5'), units:{ [t('ui.ca8c4ea71eec')]:1, [t('ui.b1033c029ae9')]:1/3.6, [t('ui.674315a2189b')]:.44704, [t('calc.unit.kn')]:.5144444444, [t('ui.1fd7463ef916')]:.3048 } },
+    time:{ name:t('calc.time'), units:{ [t('calc.unit.s')]:1, [t('ui.28bf227b9bf7')]:60, [t('ui.99f6904ff388')]:3600, [t('calc.unit.d')]:86400, [t('calc.unit.wk')]:604800, [t('ui.de0fd6ce9a7b')]:31536000 } },
     temperature:{
-      name:'温度', units:['摄氏度','华氏度','开尔文'],
+      name:t('ui.d3bea9efb1b9'), units:[t('ui.b3a2ab776465'),t('ui.e4e4ba3ed24f'),t('ui.c1b5d3267b17')],
       convert(value, from, to) {
-        const celsius = from === '摄氏度' ? value : from === '华氏度' ? (value - 32) * 5/9 : value - 273.15;
-        return to === '摄氏度' ? celsius : to === '华氏度' ? celsius * 9/5 + 32 : celsius + 273.15;
+        const celsius = from === t('ui.b3a2ab776465') ? value : from === t('ui.e4e4ba3ed24f') ? (value - 32) * 5/9 : value - 273.15;
+        return to === t('ui.b3a2ab776465') ? celsius : to === t('ui.e4e4ba3ed24f') ? celsius * 9/5 + 32 : celsius + 273.15;
       },
     },
-    energy:{ name:'能量', units:{ '焦耳':1, '千焦':1000, '卡路里':4.184, '千卡':4184, '千瓦时':3.6e6, '英尺磅':1.3558179483 } },
-    power:{ name:'功率', units:{ '瓦':1, '千瓦':1000, '马力':745.6998716, '英尺磅/分钟':.0225969658 } },
-    pressure:{ name:'压力', units:{ '帕斯卡':1, '千帕':1000, '巴':100000, '标准大气压':101325, 'psi':6894.7572932, '毫米汞柱':133.322387415 } },
+    energy:{ name:t('ui.6e01538b7fa5'), units:{ [t('ui.1e018570dfaa')]:1, [t('ui.b4d1665e741f')]:1000, [t('ui.1168eebf5b63')]:4.184, [t('ui.ed4125583d9e')]:4184, [t('ui.07f213c43a3d')]:3.6e6, [t('ui.5d3181c33bbe')]:1.3558179483 } },
+    power:{ name:t('ui.a89cb400648c'), units:{ [t('calc.unit.W')]:1, [t('ui.143b1ff7c341')]:1000, [t('ui.90164ff9e6ba')]:745.6998716, [t('ui.8651acc307d3')]:.0225969658 } },
+    pressure:{ name:t('ui.aef4cb9d00f4'), units:{ [t('ui.ce112bbcabdb')]:1, [t('ui.8675148bd10a')]:1000, [t('calc.unit.bar')]:100000, [t('ui.239e1f33bbfd')]:101325, [t('calc.unit.psi')]:6894.7572932, [t('ui.fc3a538928fb')]:133.322387415 } },
   };
 
   function open() {
@@ -56,7 +62,7 @@
 
     const root = el('div', 'calculator-leopard');
     root.innerHTML = `<section class="calc-lcd"><div class="calc-rpn-stack" hidden></div><output aria-live="polite">0</output><small class="calc-lcd-status"></small></section>
-      <section class="calc-program-meta" hidden><div class="calc-base-switch"></div><label>字长：<select class="spp-select calc-word-size"><option value="64">Qword（64 位）</option><option value="32">Dword（32 位）</option><option value="16">Word（16 位）</option><option value="8">Byte（8 位）</option></select></label><span class="calc-character">ASCII: NUL · Unicode: U+0000</span><div class="calc-bits"></div></section>
+      <section class="calc-program-meta" hidden><div class="calc-base-switch"></div><label>${t('calc.wordSize')}<select class="spp-select calc-word-size"><option value="64">${t('calc.qword')}</option><option value="32">${t('calc.dword')}</option><option value="16">${t('calc.word')}</option><option value="8">${t('calc.byte')}</option></select></label><span class="calc-character">ASCII: NUL · Unicode: U+0000</span><div class="calc-bits"></div></section>
       <section class="calc-keyboard"></section>`;
     const display = root.querySelector('output');
     const lcdStatus = root.querySelector('.calc-lcd-status');
@@ -79,13 +85,13 @@
     const angleToRadians = (value) => state.angle === 'deg' ? value * Math.PI / 180 : state.angle === 'grad' ? value * Math.PI / 200 : value;
     const radiansToAngle = (value) => state.angle === 'deg' ? value * 180 / Math.PI : state.angle === 'grad' ? value * 200 / Math.PI : value;
     const cleanNumber = (value) => {
-      if (!Number.isFinite(value)) return '错误';
+      if (!Number.isFinite(value)) return t('ui.b859c7be7501');
       if (Object.is(value, -0)) value = 0;
       if (Math.abs(value) > 9.999999999999e14 || Math.abs(value) && Math.abs(value) < 1e-11) return value.toExponential(10).replace(/\.?0+e/,'e');
       return String(Number(value.toPrecision(14)));
     };
     const formatDisplay = (raw) => {
-      if (raw === '错误') return raw;
+      if (raw === t('ui.b859c7be7501')) return raw;
       const number = Number(raw);
       if (!Number.isFinite(number)) return String(raw);
       let text;
@@ -126,7 +132,7 @@
       bits.innerHTML = '';
       for (let offset = 0; offset < binary.length; offset += 4) {
         const nibble = el('span', '', binary.slice(offset, offset + 4));
-        nibble.title = `位 ${programmer.wordSize - offset - 1}–${Math.max(0, programmer.wordSize - offset - 4)}`;
+        nibble.title = `Bit ${programmer.wordSize - offset - 1}–${Math.max(0, programmer.wordSize - offset - 4)}`;
         bits.appendChild(nibble);
       }
       const low = Number(maskProgrammer(programmer.value) & 0xffffn);
@@ -176,7 +182,7 @@
         programmer.input = programmer.input.length > 1 ? programmer.input.slice(0,-1) : '0';
         programmer.value = parseProgrammerInput(programmer.input);
       } else {
-        if (state.fresh || state.cur === '错误') return;
+        if (state.fresh || state.cur === t('ui.b859c7be7501')) return;
         state.cur = state.cur.length > 1 ? state.cur.slice(0,-1) : '0';
         if (state.cur === '-' || state.cur === '') state.cur = '0';
       }
@@ -198,7 +204,7 @@
         refresh();
         return;
       }
-      if (state.fresh || state.cur === '错误') {
+      if (state.fresh || state.cur === t('ui.b859c7be7501')) {
         state.cur = digit === '.' ? '0.' : digit;
         state.fresh = false;
       } else {
@@ -221,7 +227,7 @@
       if (state.rpn || !state.parens.length) return System.beep();
       let inner = rawNumber();
       if (state.op && state.acc !== null) inner = applyBinary(state.acc,inner,state.op);
-      if (!Number.isFinite(inner)) return setNumber('错误');
+      if (!Number.isFinite(inner)) return setNumber(t('ui.b859c7be7501'));
       const outer = state.parens.pop();
       state.cur = cleanNumber(inner);
       state.acc = outer.acc;
@@ -247,7 +253,7 @@
         const left = state.stack.pop();
         const result = applyBinary(left, right, operation);
         if (!Number.isFinite(result)) {
-          state.stack = []; return setNumber('错误');
+          state.stack = []; return setNumber(t('ui.b859c7be7501'));
         }
         state.stack.push(result);
         state.cur = cleanNumber(result);
@@ -274,7 +280,7 @@
       const right = state.op ? rawNumber() : state.lastOperand;
       const left = state.op ? state.acc : rawNumber();
       const result = applyBinary(left, right, operation);
-      if (!Number.isFinite(result)) return setNumber('错误');
+      if (!Number.isFinite(result)) return setNumber(t('ui.b859c7be7501'));
       addTape(`${cleanNumber(left)} ${operation} ${cleanNumber(right)} = ${cleanNumber(result)}`, result);
       state.cur = cleanNumber(result);
       state.lastOp = operation;
@@ -324,7 +330,7 @@
         case 'abs': value = Math.abs(value); break;
         default: break;
       }
-      if (!Number.isFinite(value)) return setNumber('错误');
+      if (!Number.isFinite(value)) return setNumber(t('ui.b859c7be7501'));
       if (state.rpn && state.fresh && state.stack.length) state.stack[state.stack.length - 1] = value;
       state.cur = cleanNumber(value);
       state.fresh = true;
@@ -450,8 +456,8 @@
     const refresh = () => {
       root.dataset.mode = state.mode;
       if (state.mode === 'programmer') {
-        display.textContent = programmer.error ? '错误' : programValueText();
-        lcdStatus.textContent = `${programmer.base === 16 ? '十六进制' : programmer.base === 10 ? '十进制' : programmer.base === 8 ? '八进制' : '二进制'} · ${programmer.wordSize} 位`;
+        display.textContent = programmer.error ? t('ui.b859c7be7501') : programValueText();
+        lcdStatus.textContent = `${programmer.base === 16 ? t('ui.8e35f2b9f3ff') : programmer.base === 10 ? t('ui.bfa03483a252') : programmer.base === 8 ? t('ui.bfc2c4a3918c') : t('ui.78ff74e37b12')} · ${programmer.wordSize}-bit`;
         rpnStack.hidden = true;
         displayProgramBits();
         baseSwitch.querySelectorAll('[data-base]').forEach((button) => {
@@ -530,7 +536,7 @@
       });
       syncTape(true);
       updateDatasets();
-      Leopard.toast('计算器','纸带合计已重新计算。');
+      Leopard.toast(t('ui.bbbf3aed4356'), t('calc.tapeRecalc'));
     };
     const openPaperTape = () => {
       if (tapeWindow?.isConnected) {
@@ -538,10 +544,10 @@
         return;
       }
       const content = el('div','calculator-tape');
-      content.innerHTML = `<header><b>纸带</b><span>可以编辑项目，再重新计算合计。</span></header><textarea aria-label="计算器纸带" spellcheck="false"></textarea><footer><button class="aqua-btn tape-clear">清除</button><button class="aqua-btn tape-recalculate">重新计算合计</button></footer>`;
+      content.innerHTML = `<header><b>${t('ui.7f6102c06772')}</b><span>${t('ui.355bb22b289f')}</span></header><textarea aria-label="${t('ui.be204365e1bc')}" spellcheck="false"></textarea><footer><button class="aqua-btn tape-clear">${t('ui.7b15e5e8e7bd')}</button><button class="aqua-btn tape-recalculate">${t('ui.072a0843f15e')}</button></footer>`;
       tapeArea = content.querySelector('textarea');
       tapeWindow = System.createWindow({
-        app:'calculator',title:'纸带',width:315,height:430,content,noResize:true,
+        app:'calculator',title:t('ui.7f6102c06772'),width:315,height:430,content,noResize:true,
         onClose:() => {
           if (tapeArea?.value.trim()) {
             tape.length = 0;
@@ -568,14 +574,14 @@
       const text = tapeText();
       if (!text.trim()) return System.beep();
       System.savePanel({
-        parent:parentWindow(),title:'存储纸带',startPath:'/用户/roll/文稿',
-        name:VFS.uniqueName('/用户/roll/文稿',`计算器纸带 ${new Date().toISOString().slice(0,10)}`,'.txt'),
-        extension:'txt',typeLabel:'纯文本文稿',allowOverwrite:true,
+        parent:parentWindow(),title:t('ui.0d1cd5c8f66b'),startPath: paths.documents,
+        name:VFS.uniqueName(paths.documents, t('calc.tapeFile', { date: new Date().toISOString().slice(0,10) }),'.txt'),
+        extension:'txt',typeLabel:t('ui.0373f454fa15'),allowOverwrite:true,
         onSave:(path) => {
           const savedNode = VFS.putNode(path,{type:'file',kind:'document',mime:'text/plain',content:`${text}\n`,creator:'calculator',generated:true});
           if (savedNode) {
             System.addRecentDocument?.(path,'calculator');
-            Leopard.toast('计算器',`“${VFS.baseName(path)}”已存储。`);
+            Leopard.toast(t('ui.bbbf3aed4356'), t('calc.tapeSaved', { name: VFS.baseName(path) }));
           }
           return savedNode;
         },
@@ -605,16 +611,16 @@
       pdf += `xref\n0 ${objects.length+1}\n0000000000 65535 f \n`;
       offsets.slice(1).forEach((offset) => { pdf += `${String(offset).padStart(10,'0')} 00000 n \n`; });
       pdf += `trailer\n<< /Size ${objects.length+1} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF`;
-      const path = `/用户/roll/下载/${VFS.uniqueName('/用户/roll/下载',`计算器纸带 ${new Date().toISOString().slice(0,10)}`,'.pdf')}`;
+      const path = `${paths.downloads}/${VFS.uniqueName(paths.downloads, t('calc.tapeFile', { date: new Date().toISOString().slice(0,10) }),'.pdf')}`;
       VFS.putNode(path,{type:'file',kind:'pdf',mime:'application/pdf',src:`data:application/pdf;base64,${btoa(pdf)}`,creator:'calculator',generated:true});
       System.addRecentDocument?.(path,'calculator');
-      Leopard.toast('Web PDF Printer',`纸带已打印为“${VFS.baseName(path)}”。`);
+      Leopard.toast('Web PDF Printer', t('calc.tapePrinted', { name: VFS.baseName(path) }));
     };
 
     const showConverter = (initialCategory = converterCategory) => {
       converterCategory = conversionGroups[initialCategory] ? initialCategory : 'length';
       const pane = el('div','calculator-converter');
-      pane.innerHTML = `<p>将当前显示值从一种单位换算到另一种单位。</p><label><span>类别：</span><select class="spp-select convert-category"></select></label><label><span>从：</span><select class="spp-select convert-from"></select></label><label><span>到：</span><select class="spp-select convert-to"></select></label><label><span>输入：</span><input class="aqua-input convert-input" inputmode="decimal"></label><label><span>结果：</span><output class="convert-output">0</output></label><small>换算使用固定物理单位定义，不会访问网络。</small>`;
+      pane.innerHTML = `<p>${t('calc.convertHelp')}</p><label><span>${t('calc.category')}</span><select class="spp-select convert-category"></select></label><label><span>${t('calc.from')}</span><select class="spp-select convert-from"></select></label><label><span>${t('calc.to')}</span><select class="spp-select convert-to"></select></label><label><span>${t('calc.input')}</span><input class="aqua-input convert-input" inputmode="decimal"></label><label><span>${t('calc.result')}</span><output class="convert-output">0</output></label><small>${t('calc.convertNote')}</small>`;
       const category = pane.querySelector('.convert-category');
       const from = pane.querySelector('.convert-from');
       const to = pane.querySelector('.convert-to');
@@ -639,16 +645,16 @@
           if (group.convert) result = group.convert(value,from.value,to.value);
           else result = value * group.units[from.value] / group.units[to.value];
         }
-        output.value = output.textContent = Number.isFinite(result) ? cleanNumber(result) : '请输入有效数字';
+        output.value = output.textContent = Number.isFinite(result) ? cleanNumber(result) : t('calc.invalidNumber');
       };
       category.addEventListener('change',() => { converterCategory=category.value;fillUnits(); });
       from.addEventListener('change',update); to.addEventListener('change',update); input.addEventListener('input',update);
       fillUnits();
       System.showSheet({
-        parent:parentWindow(),title:'换算',content:pane,className:'calculator-convert-sheet',initialFocus:input,
+        parent:parentWindow(),title:t('ui.942742d7978e'),content:pane,className:'calculator-convert-sheet',initialFocus:input,
         buttons:[
-          {label:'取消',cancel:true},
-          {label:'换算',default:true,action:() => {
+          {label:t('ui.4d0b4688c787'),cancel:true},
+          {label:t('ui.942742d7978e'),default:true,action:() => {
             const value = Number(output.textContent);
             if (!Number.isFinite(value)) return false;
             if (state.mode === 'programmer') setProgrammerValue(BigInt(Math.round(value)));
@@ -660,7 +666,7 @@
 
     const copyDisplay = async () => {
       const text = display.textContent;
-      try { await navigator.clipboard.writeText(text); Leopard.toast('计算器','显示值已拷贝。'); }
+      try { await navigator.clipboard.writeText(text); Leopard.toast(t('ui.bbbf3aed4356'),t('ui.ec0ddf341ec3')); }
       catch (error) { System.beep(); }
     };
     const pasteDisplay = async () => {
@@ -675,7 +681,7 @@
           setNumber(value);
         }
       } catch (error) {
-        System.alertBox('不能粘贴','剪贴板里没有可以由“计算器”识别的数字。');
+        System.alertBox(t('ui.2bf5fa04cbcf'),t('ui.0bf0126af145'));
       }
     };
 
@@ -768,7 +774,7 @@
     });
 
     mainWindow = System.createWindow({
-      app:'calculator',title:'计算器',width:238,height:334,content:root,noResize:true,
+      app:'calculator',title:t('ui.bbbf3aed4356'),width:238,height:334,content:root,noResize:true,
       onClose:() => { window.speechSynthesis?.cancel(); return true; },
     });
     mainWindow.addEventListener('leopard-command',handleCommand);
@@ -797,8 +803,8 @@
   }
 
   System.registerApp({
-    id:'calculator',name:'计算器',icon,open,
-    about:'Leopard 风格的完整计算器：基本、科学与程序员模式，RPN、单位换算、语音和可编辑纸带。',
-    keywords:'calculator 计算器 scientific programmer 科学 程序员 换算 纸带',
+    id:'calculator',name:t('ui.bbbf3aed4356'),icon,open,
+    about:t('ui.36431d9fe61b'),
+    keywords:t('ui.0db77f244536'),
   });
 })();

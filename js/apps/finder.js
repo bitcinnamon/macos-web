@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { ICONS } from '../icons.js';
+import { paths, HOME_USER } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // Finder — browse the virtual file system
 (() => {
   const { el } = System;
@@ -45,17 +51,17 @@
       const loaded = System.Kexts.isLoaded(name);
       const apply = () => {
         const r = loaded ? System.Kexts.unload(name) : System.Kexts.load(name);
-        System.alertBox('内核扩展', r.msg);
+        System.alertBox(t('app.fndc.228dc936cdc0'), r.msg);
       };
       const parent = win || System.topWindowOf('finder');
       const opts = {
-        parent, title: '内核扩展',
-        headline: loaded ? `卸载“${name}”？` : `装载“${name}”？`,
-        message: `${node.desc || '内核扩展'}（版本 ${node.ver || '1.0'}）\n当前状态：${loaded ? '已装载' : '未装载'}`,
-        okLabel: loaded ? '卸载' : '装载', onOK: apply,
+        parent, title: t('app.fndc.228dc936cdc0'),
+        headline: loaded ? `${t('app.fndc.6b007bac673d')}“${name}”？` : `${t('app.fndc.8f556dd865c3')}“${name}”？`,
+        message: `${node.desc || t('app.fndc.228dc936cdc0')}（${t('app.fndc.5220cc13e93a')} ${node.ver || '1.0'}）\n${t('app.fndc.26632df57009')}：${loaded ? t('ui.6ced5ae9afee') : t('ui.520433b873c5')}`,
+        okLabel: loaded ? t('ui.200cf1550d76') : t('ui.b9a13be2f987'), onOK: apply,
       };
       if (parent) System.confirmSheet(opts);
-      else System.confirmBox({ title:'内核扩展', text:`${opts.headline}\n${opts.message}`, okLabel:opts.okLabel, onOK:apply });
+      else System.confirmBox({ title:t('app.fndc.228dc936cdc0'), text:`${opts.headline}\n${opts.message}`, okLabel:opts.okLabel, onOK:apply });
       return;
     }
     if (node.kind === 'image' || node.kind === 'pdf') {
@@ -81,8 +87,8 @@
     const node = VFS.get(path);
     if (!node) return;
     let dest = node.from ? VFS.parentOf(node.from) : null;
-    if (!dest || !VFS.isDir(dest)) dest = '/用户/roll/文稿';
-    VFS.move(path, dest, { sourcePatch:{ from:null }, label:`放回“${VFS.baseName(path)}”` });
+    if (!dest || !VFS.isDir(dest)) dest = paths.documents;
+    VFS.move(path, dest, { sourcePatch:{ from:null }, label:`${t('app.fndc.24449eff3098')}“${VFS.baseName(path)}”` });
   }
 
   function render(win) {
@@ -120,49 +126,49 @@
         e.preventDefault(); e.stopPropagation();
         select();
         const node = VFS.get(p);
-        const menu = [{ label: '打开', action: () => openItem(win, p) }];
+        const menu = [{ label: t('ui.65fc81e16119'), action: () => openItem(win, p) }];
         if (System.canDownloadVfsFile(p)) {
-          menu.push({ label: '下载到本地…', action: () => System.downloadVfsFile(p) });
+          menu.push({ label: t('ui.6584b4c39ba4'), action: () => System.downloadVfsFile(p) });
         }
         if (inTrash) {
           menu.push({ sep: true },
-            { label: '放回原位', action: () => restoreItem(p) },
-            { label: '立即删除…', action: () => System.confirmSheet({
-              parent: win, title:'立即删除', headline:`确定要永久删除“${name}”吗？`,
-              message:'此操作无法撤销。', okLabel:'删除', danger:true,
+            { label: t('app.fndc.5b8075a1df18'), action: () => restoreItem(p) },
+            { label: t('ui.369e8a4499d4'), action: () => System.confirmSheet({
+              parent: win, title:t('ui.d56f902664ee'), headline:t('app.fnd.deleteName', { name }),
+              message:t('ui.ab107fd462e6'), okLabel:t('ui.3755f56f2f83'), danger:true,
               onOK:()=>VFS.remove(p, { record:false }),
             }) });
         } else if (node && (node.type === 'file' || node.type === 'dir')) {
-          menu.push({ sep: true }, { label: '移到废纸篓', action: () => System.moveToTrash(p) });
+          menu.push({ sep: true }, { label: t('ui.e25762f172c1'), action: () => System.moveToTrash(p) });
         }
         System.contextMenu(e, menu);
       });
       grid.appendChild(item);
     });
     main.appendChild(grid);
-    win._pathLabel.textContent = path === System.TRASH ? '废纸篓' : path;
+    win._pathLabel.textContent = path === System.TRASH ? t('ui.cc4c713c4cc5') : path;
     win._emptyBtn.style.display = path === System.TRASH ? '' : 'none';
     win._newFolderBtn.style.display = inTrash ? 'none' : '';
-    win.querySelector('.win-statusbar').textContent = `${names.length} 项`;
+    win.querySelector('.win-statusbar').textContent = t('app.fnd.nItems', { n: names.length });
     win._side.querySelectorAll('.fs-item').forEach((s) => s.classList.toggle('sel', s.dataset.path === path));
   }
 
   function open(arg) {
-    const startPath = (arg && arg.path) || '/用户/roll';
+    const startPath = (arg && arg.path) || paths.home;
 
     const layout = el('div', 'finder-layout');
     const side = el('div', 'finder-side');
-    side.innerHTML = `<div class="fs-head">设备</div>`;
+    side.innerHTML = `<div class="fs-head">${t('app.fndc.58c666683e08')}</div>`;
     const places = [
       ['/', 'Macintosh HD', ICONS.hd],
       null,
-      ['/用户/roll', 'roll 的home', ICONS.folder],
-      ['/用户/roll/桌面', '桌面', ICONS.folder],
-      ['/用户/roll/文稿', '文稿', ICONS.folder],
-      ['/用户/roll/图片', '图片', ICONS.folder],
-      ['/应用程序', '应用程序', ICONS.folder],
-      ['/应用程序/实用工具', '实用工具', ICONS.folder],
-      ['/系统/扩展', '扩展 (kext)', ICONS.folder],
+      [paths.home, HOME_USER, ICONS.folder],
+      [paths.desktop, t('ui.65fdeb927bb9'), ICONS.folder],
+      [paths.documents, t('ui.908a913cf12c'), ICONS.folder],
+      [paths.pictures, t('ui.be8da62ea113'), ICONS.folder],
+      ['/应用程序', t('ui.8a443802664a'), ICONS.folder],
+      ['/应用程序/实用工具', t('app.fndc.6520ff68e354'), ICONS.folder],
+      ['/系统/扩展', t('ui.ff7c79bed20f'), ICONS.folder],
     ];
     const main = el('div', 'finder-main');
 
@@ -170,8 +176,8 @@
     toolbar.style.cssText = 'display:flex;align-items:center;gap:6px;width:100%';
     const back = el('button', 'finder-toolbar-btn', '◀');
     const up = el('button', 'finder-toolbar-btn', '▲');
-    const newFolder = el('button', 'finder-toolbar-btn', '新建文件夹');
-    const emptyBtn = el('button', 'finder-toolbar-btn', '清倒废纸篓');
+    const newFolder = el('button', 'finder-toolbar-btn', t('ui.95cf3cd4212b'));
+    const emptyBtn = el('button', 'finder-toolbar-btn', t('ui.f7a6fdccf307'));
     const pathLabel = el('span', 'finder-path');
     toolbar.append(back, up, newFolder, emptyBtn, pathLabel);
 
@@ -191,7 +197,7 @@
     win._history = [];
 
     places.forEach((pl) => {
-      if (!pl) { side.appendChild(el('div', 'fs-head', '位置')); return; }
+      if (!pl) { side.appendChild(el('div', 'fs-head', t('ui.88c34452cc46'))); return; }
       const [p, label, ic] = pl;
       const item = el('div', 'fs-item');
       item.dataset.path = p;
@@ -205,8 +211,8 @@
     up.addEventListener('click', () => { win._history.push(win._path); openPath(win, VFS.parentOf(win._path)); });
     newFolder.addEventListener('click', () => {
       System.promptSheet({
-        parent:win, title:'新建文件夹', message:'请输入新文件夹的名称：',
-        value:VFS.uniqueName(win._path,'未命名文件夹',''), okLabel:'新建',
+        parent:win, title:t('ui.95cf3cd4212b'), message:t('ui.4f708d3f1326'),
+        value:VFS.uniqueName(win._path,t('ui.4e2204bec6c1'),''), okLabel:t('ui.0cda8d1c7182'),
         onOK:(name)=>{if(!VFS.mkdir(win._path+'/'+name))return false;render(win);},
       });
     });
@@ -219,9 +225,9 @@
       if (e.target !== main && !e.target.classList.contains('finder-grid')) return;
       e.preventDefault();
       if (win._path === System.TRASH) {
-        System.contextMenu(e, [{ label: '清倒废纸篓…', action: () => System.emptyTrash(), disabled: !(VFS.list(System.TRASH) || []).length }]);
+        System.contextMenu(e, [{ label: t('ui.b13480a16033'), action: () => System.emptyTrash(), disabled: !(VFS.list(System.TRASH) || []).length }]);
       } else {
-        System.contextMenu(e, [{ label: '新建文件夹', action: () => VFS.mkdir(win._path + '/' + VFS.uniqueName(win._path, '未命名文件夹', '')) }]);
+        System.contextMenu(e, [{ label: t('ui.95cf3cd4212b'), action: () => VFS.mkdir(win._path + '/' + VFS.uniqueName(win._path, t('ui.4e2204bec6c1'), '')) }]);
       }
     });
 
@@ -235,8 +241,8 @@
 
   System.registerApp({
     id: 'finder', name: 'Finder', icon, open, multiWindow: true,
-    about: '文件管理器。浏览虚拟文件系统，双击文本文件用「文本编辑」打开。',
-    keywords: 'finder 文件',
+    about: t('ui.e0e581d70d03'),
+    keywords: t('ui.2c1b8ffddb6d'),
   });
 
   // shared with the desktop (system.js)

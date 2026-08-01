@@ -569,7 +569,11 @@ html.aqua-busy-active, html.aqua-busy-active * { cursor: none !important; }
 .finder-inspector { display: none; }
 .finder-icons-view { gap: var(--finder-grid-gap,8px) 4px; align-content: start; padding: 15px; }
 .finder-icons-view .f-icon { width: calc(var(--finder-icon-size,64px) + 32px); min-height: calc(var(--finder-icon-size,64px) + 30px); }
-.finder-icons-view .fi-img { width: var(--finder-icon-size,64px); height: var(--finder-icon-size,64px); }
+.finder-icons-view .fi-img {
+  width: var(--finder-icon-size,64px); height: var(--finder-icon-size,64px);
+  overflow: visible; display: grid; place-items: center;
+}
+.finder-icons-view .fi-img svg { overflow: visible; display: block; }
 .finder-icons-view .fi-copy{display:grid;justify-items:center;gap:1px;max-width:100%}
 .finder-icons-view .fi-label{font-size:var(--finder-text-size,11px)}
 .finder-icons-view .fi-info{display:none;max-width:100%;overflow:hidden;color:#666;font-size:max(8px,calc(var(--finder-text-size,11px) - 2px));text-overflow:ellipsis;white-space:nowrap}
@@ -1474,8 +1478,8 @@ body.dock-auto-hide[data-dock-position="left"] #dock-wrap:not(:hover){transform:
 .window.sticky-window>.win-body{overflow:hidden!important;background:var(--sticky-paper)!important}
 .sticky-note{position:relative;height:100%;min-height:0;color:var(--sticky-ink);background:linear-gradient(105deg,#fff2,transparent 13%,transparent 88%,#0000000b),repeating-linear-gradient(var(--sticky-paper) 0 25px,color-mix(in srgb,var(--sticky-paper),var(--sticky-edge) 11%) 25px 26px)}
 .sticky-editor{height:100%;min-height:0;padding:10px 12px;overflow:auto;outline:0;color:inherit;font-family:"Marker Felt","Lucida Grande",sans-serif;font-size:15px;line-height:1.35;white-space:pre-wrap;overflow-wrap:anywhere;caret-color:currentColor}
-.sticky-editor:empty:before{content:"输入便笺…";color:color-mix(in srgb,var(--sticky-ink),transparent 58%);pointer-events:none}.sticky-editor img{display:block;max-width:100%;max-height:300px;margin:7px auto;border:1px solid var(--sticky-edge);box-shadow:0 2px 5px #0004}.sticky-editor a{color:#185f9c;text-decoration:underline}
-.sticky-note.drop-target:after{content:"松开以加入图像";position:absolute;inset:8px;display:grid;place-items:center;border:2px dashed color-mix(in srgb,var(--sticky-edge),#345 30%);color:var(--sticky-ink);background:color-mix(in srgb,var(--sticky-paper),transparent 12%);font-weight:bold}
+.sticky-editor:empty:before{content:"Type a sticky note…";color:color-mix(in srgb,var(--sticky-ink),transparent 58%);pointer-events:none}.sticky-editor img{display:block;max-width:100%;max-height:300px;margin:7px auto;border:1px solid var(--sticky-edge);box-shadow:0 2px 5px #0004}.sticky-editor a{color:#185f9c;text-decoration:underline}
+.sticky-note.drop-target:after{content:"Release to add image";position:absolute;inset:8px;display:grid;place-items:center;border:2px dashed color-mix(in srgb,var(--sticky-edge),#345 30%);color:var(--sticky-ink);background:color-mix(in srgb,var(--sticky-paper),transparent 12%);font-weight:bold}
 .sticky-title-control{position:absolute;top:4px;display:grid;place-items:center;width:14px;height:14px;padding:0;border:1px solid color-mix(in srgb,var(--sticky-edge),#555 30%);border-radius:2px;color:color-mix(in srgb,var(--sticky-ink),transparent 15%);background:linear-gradient(#fff8,#0001);font:9px/1 "Lucida Grande",sans-serif}.sticky-title-control.collapse{right:23px}.sticky-title-control.zoom{right:6px}.sticky-title-control:active{background:#0002}
 .window.sticky-floating{z-index:8500!important}.window.sticky-translucent{opacity:.76}.window.sticky-translucent:hover,.window.sticky-translucent:focus-within,.window.sticky-translucent.sheet-open{opacity:.94}
 .window.sticky-collapsed{min-height:23px!important;height:23px!important}.window.sticky-collapsed>.win-body,.window.sticky-collapsed>.win-resize{display:none}.window.sticky-collapsed>.titlebar{border-bottom:0}.window.sticky-collapsed .sticky-title-control.collapse{font-weight:bold}
@@ -1484,3 +1488,36 @@ body.dock-auto-hide[data-dock-position="left"] #dock-wrap:not(:hover){transform:
 /* TextEdit — Find/Replace and Leopard font sheets */
 .textedit-find{display:grid;grid-template-columns:76px minmax(230px,1fr);align-items:center;gap:9px 8px;min-width:430px;padding:2px 8px 5px}.textedit-find>label:not(.spp-check){display:contents}.textedit-find>label>span{text-align:right}.textedit-find input{width:100%}.textedit-find .te-find-case{grid-column:2}.textedit-find>output{grid-column:1/-1;min-height:23px;padding:5px 8px;border:1px solid #aaa;border-radius:3px;background:#fff;color:#666}.te-find-actions{grid-column:1/-1;display:flex;justify-content:flex-end;gap:7px;padding-top:2px}
 .textedit-font-panel{display:grid;grid-template-columns:80px minmax(190px,1fr);align-items:center;gap:9px 8px;min-width:360px;padding:2px 8px 6px}.textedit-font-panel label{display:contents}.textedit-font-panel label>span{text-align:right}.textedit-font-panel select{width:100%}.te-font-preview{grid-column:1/-1;display:grid;place-items:center;min-height:68px;margin-top:4px;border:1px solid #999;border-radius:4px;background:#fff;overflow:hidden}
+
+/* International (Language & Formats) — closer to Leopard System Preferences */
+.international-tabs{margin:0 0 12px}
+.language-panel .intl-help{margin:4px 0 12px;color:#333}
+.language-panel .intl-note{margin-top:16px;line-height:1.45;color:#555;font-size:12px}
+.language-column{display:flex;flex-direction:column;gap:8px}
+.language-list{list-style:decimal inside;height:230px;margin:0;padding:4px;border:1px solid #8a929b;border-radius:3px;background:#fff;overflow:auto;box-shadow:inset 0 1px 0 #fff,0 1px 0 rgba(0,0,0,.04)}
+.language-list li{margin:0;padding:0;list-style:none}
+.language-list button{display:block;width:100%;padding:6px 10px;border:0;background:transparent;text-align:left;font:inherit;color:#181818;border-radius:2px}
+.language-list button.sel{color:#fff;background:linear-gradient(#7eade0,#3a78c2)}
+.language-actions{display:flex;flex-wrap:wrap;gap:6px}
+.language-aside label{display:grid;gap:6px;font-size:12px}
+.formats-panel .region-label{display:grid;grid-template-columns:72px 1fr;align-items:center;max-width:360px;margin-bottom:14px}
+.formats-panel .format-preview{margin-top:8px;padding:14px 16px;border:1px solid #a0a8b0;border-radius:6px;background:linear-gradient(#fff,#f3f5f7)}
+.formats-panel .format-preview dl{display:grid;grid-template-columns:72px 1fr;gap:8px 12px;margin:0}
+.formats-panel .format-preview dt{text-align:right;color:#666}
+
+/* Finder list/column glyphs: keep SVG paint inside the cell without clipping the right edge */
+.finder-list-row > span:first-child svg,
+.column-item > span:first-child svg,
+.cover-strip-item svg,
+.finder-side .fs-item svg {
+  overflow: visible;
+  flex: none;
+  display: block;
+}
+.finder-list-row > span:first-child,
+.column-item {
+  min-width: 0;
+}
+.finder-list-row > span:first-child svg {
+  width: 16px; height: 16px; margin-right: 6px; vertical-align: -3px;
+}

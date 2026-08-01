@@ -1,3 +1,7 @@
+import { System } from '../system/index.js';
+import { Leopard } from '../leopard.js';
+import { t } from '../i18n/index.js';
+
 // iTunes — Leopard library UI with original, procedurally synthesized songs.
 (() => {
   const { el } = System;
@@ -13,55 +17,55 @@
 
   const TRACKS = [
     {
-      name: '红雾回廊', artist: '幻想音源研究室', album: '弹幕幻想曲集', genre: '弹幕幻想原创', bpm: 168,
+      name: t('app.it2.404ab3ffebcd'), artist: t('app.it2.0ef5152e3a98'), album: t('app.it2.b9ce251dee91'), genre: t('app.it2.e4677b6fcfc7'), bpm: 168,
       color: ['#e35d69', '#46142a'], wave: 'square',
       melody: [['A4',.5],['C5',.5],['E5',.5],['D5',.5],['C5',.5],['A4',.5],['G#4',1],['E4',1],['A4',.5],['B4',.5],['C5',1],['E5',.5],['F5',.5],['E5',1],['D5',.5],['C5',.5],['B4',1],['G#4',1]],
       chords: [['A3','C4','E4'],['F3','A3','C4'],['D3','F3','A3'],['E3','G#3','B3']],
     },
     {
-      name: '月下竹林', artist: '幻想音源研究室', album: '弹幕幻想曲集', genre: '弹幕幻想原创', bpm: 152,
+      name: t('app.it2.546da4b9a3be'), artist: t('app.it2.0ef5152e3a98'), album: t('app.it2.b9ce251dee91'), genre: t('app.it2.e4677b6fcfc7'), bpm: 152,
       color: ['#b596e8', '#263b75'], wave: 'triangle',
       melody: [['E5',.5],['F#5',.5],['A5',1],['B5',.5],['A5',.5],['F#5',1],['E5',.5],['C#5',.5],['B4',1],['C#5',.5],['E5',.5],['F#5',1],['E5',.5],['C#5',.5],['B4',1],['A4',1]],
       chords: [['F#3','A3','C#4'],['D3','F#3','A3'],['E3','G#3','B3'],['C#3','E3','G#3']],
     },
     {
-      name: '境界疾走', artist: '幻想音源研究室', album: '弹幕幻想曲集', genre: '弹幕幻想原创', bpm: 178,
+      name: t('app.it2.5c64f36c97f1'), artist: t('app.it2.0ef5152e3a98'), album: t('app.it2.b9ce251dee91'), genre: t('app.it2.e4677b6fcfc7'), bpm: 178,
       color: ['#ffcf62', '#76355f'], wave: 'square',
       melody: [['D5',.25],['F5',.25],['A5',.5],['C6',.5],['A5',.5],['G5',.25],['F5',.25],['E5',.5],['D5',.5],['A4',.5],['C5',.5],['D5',.5],['F5',.5],['E5',.5],['C5',.5],['A4',1]],
       chords: [['D3','F3','A3'],['A#2','D3','F3'],['C3','E3','G3'],['A2','C#3','E3']],
     },
     {
-      name: '无声站台', artist: '雨线乐队（虚构）', album: '写不完的夏夜', genre: '青春情绪摇滚原创', bpm: 136,
+      name: t('ui.2664d10762d2'), artist: t('ui.3c7ea9b3e14f'), album: t('app.it2.f54a58656d50'), genre: t('app.it2.114b4be42eac'), bpm: 136,
       color: ['#61a8db', '#233a58'], wave: 'sawtooth',
       melody: [['E4',1],['G4',.5],['A4',1.5],['B4',1],['A4',1],['G4',2],['E4',1],['D4',1],['E4',1],['G4',1],['B4',1],['A4',1],['G4',2],['D4',2]],
       chords: [['C3','G3','E4'],['G2','D3','B3'],['A2','E3','C4'],['F2','C3','A3']],
     },
     {
-      name: '雨后失真', artist: '雨线乐队（虚构）', album: '写不完的夏夜', genre: '青春情绪摇滚原创', bpm: 148,
+      name: t('app.it2.674487875b9c'), artist: t('ui.3c7ea9b3e14f'), album: t('app.it2.f54a58656d50'), genre: t('app.it2.114b4be42eac'), bpm: 148,
       color: ['#8da1b5', '#342e52'], wave: 'sawtooth',
       melody: [['B4',.5],['A4',.5],['G4',1],['D5',1],['B4',1],['A4',2],['E4',1],['G4',1],['A4',1],['B4',1],['D5',.5],['E5',.5],['D5',1],['B4',2]],
       chords: [['G2','D3','B3'],['D3','A3','F#4'],['E3','B3','G4'],['C3','G3','E4']],
     },
     {
-      name: '写不完的夏夜', artist: '雨线乐队（虚构）', album: '写不完的夏夜', genre: '青春情绪摇滚原创', bpm: 126,
+      name: t('app.it2.f54a58656d50'), artist: t('ui.3c7ea9b3e14f'), album: t('app.it2.f54a58656d50'), genre: t('app.it2.114b4be42eac'), bpm: 126,
       color: ['#ed8a71', '#5c2c55'], wave: 'triangle',
       melody: [['A4',1],['C5',1],['E5',2],['D5',1],['C5',1],['A4',2],['G4',1],['A4',1],['C5',1],['D5',1],['E5',2],['C5',1],['A4',1],['G4',2]],
       chords: [['A2','E3','C4'],['F2','C3','A3'],['C3','G3','E4'],['G2','D3','B3']],
     },
     {
-      name: '玻璃海的信号', artist: 'L-39 合成歌手', album: '零点蓝光', genre: '歌声合成器原创', bpm: 150,
+      name: t('app.it2.3d5cce47e62d'), artist: t('ui.c490b6695133'), album: t('app.it2.1b4e04d382c0'), genre: t('app.it2.c258c4821d4a'), bpm: 150,
       color: ['#58d5d0', '#245a86'], wave: 'vocal',
       melody: [['C5',.5],['E5',.5],['G5',1],['A5',.5],['G5',.5],['E5',1],['D5',.5],['E5',.5],['G5',1],['E5',.5],['D5',.5],['C5',1],['A4',1],['C5',1]],
       chords: [['C3','E3','G3'],['A2','C3','E3'],['F2','A2','C3'],['G2','B2','D3']],
     },
     {
-      name: '零点蓝光', artist: 'L-39 合成歌手', album: '零点蓝光', genre: '歌声合成器原创', bpm: 160,
+      name: t('app.it2.1b4e04d382c0'), artist: t('ui.c490b6695133'), album: t('app.it2.1b4e04d382c0'), genre: t('app.it2.c258c4821d4a'), bpm: 160,
       color: ['#4e89e6', '#32286e'], wave: 'vocal',
       melody: [['F#4',.5],['A4',.5],['C#5',.5],['E5',.5],['F#5',1],['E5',1],['C#5',.5],['B4',.5],['A4',1],['C#5',.5],['E5',.5],['F#5',1],['A5',1],['E5',1],['C#5',2]],
       chords: [['F#2','C#3','A3'],['D3','A3','F#4'],['A2','E3','C#4'],['E3','B3','G#4']],
     },
     {
-      name: '未命名的明天', artist: 'L-39 合成歌手', album: '零点蓝光', genre: '歌声合成器原创', bpm: 142,
+      name: t('app.it2.62518173226b'), artist: t('ui.c490b6695133'), album: t('app.it2.1b4e04d382c0'), genre: t('app.it2.c258c4821d4a'), bpm: 142,
       color: ['#86e7c2', '#3c467e'], wave: 'vocal',
       melody: [['D5',1],['E5',.5],['F#5',.5],['A5',1],['F#5',1],['E5',2],['B4',1],['D5',1],['E5',1],['F#5',1],['A5',.5],['B5',.5],['A5',1],['F#5',2]],
       chords: [['D3','F#3','A3'],['B2','D3','F#3'],['G2','B2','D3'],['A2','C#3','E3']],
@@ -285,7 +289,7 @@
     });
     const track = TRACKS[playing >= 0 ? playing : selected];
     ui.title.textContent = playing >= 0 ? track.name : 'iTunes';
-    ui.subtitle.textContent = playing >= 0 ? `${track.artist} — ${track.album}` : 'Leopard Web 原创音乐库';
+    ui.subtitle.textContent = playing >= 0 ? `${track.artist} — ${track.album}` : t('ui.e0b10a065319');
     ui.play.textContent = playing >= 0 ? '❚❚' : '▶';
     ui.art.style.setProperty('--art-a', track.color[0]);
     ui.art.style.setProperty('--art-b', track.color[1]);
@@ -300,9 +304,9 @@
     const enabledCheck = el('input');
     enabledCheck.type = 'checkbox';
     enabledCheck.checked = true;
-    enabled.append(enabledCheck, document.createTextNode(' 开启'));
+    enabled.append(enabledCheck, document.createTextNode(t('app.it2.fb08e9e4458f')));
     const preset = el('select', 'aqua-input');
-    [['flat','平直'],['rock','摇滚'],['electronic','电子'],['vocal','人声增强'],['bass','低音增强']].forEach(([value,label]) => {
+    [['flat',t('app.it2.17997507a2e7')],['rock',t('app.it2.c62a85dacfad')],['electronic',t('app.it2.dfe58651d1a9')],['vocal',t('app.it2.65b17086cd9c')],['bass',t('app.it2.9a971a40863e')]].forEach(([value,label]) => {
       const option = el('option', '', label); option.value = value; preset.appendChild(option);
     });
     header.append(enabled, preset);
@@ -335,7 +339,7 @@
     enabledCheck.addEventListener('change', () => sliders.forEach((slider) => slider.dispatchEvent(new Event('input'))));
     panel.append(header, bands);
     System.createWindow({
-      app:'itunes', title:'iTunes 均衡器', width:610, height:330, content:panel,
+      app:'itunes', title:t('ui.7366baebeee8'), width:610, height:330, content:panel,
       noResize:true, bodyBg:'#d8d8d8',
       autoFitContent:{ minHeight:300, maxHeight:400 },
     });
@@ -357,7 +361,7 @@
     controls.append(previous, play, next);
     const lcd = el('div', 'it-display');
     const title = el('b', '', 'iTunes');
-    const subtitle = el('span', '', 'Leopard Web 原创音乐库');
+    const subtitle = el('span', '', t('ui.e0b10a065319'));
     const trackLine = el('div', 'it-progress');
     const progress = el('i');
     trackLine.appendChild(progress);
@@ -368,29 +372,29 @@
     volume.type = 'range'; volume.min = '0'; volume.max = '100';
     volume.value = String(Math.max(0, Math.min(100, Number(savedPlayerState.volume) || 32)));
     const search = el('input', 'aqua-input aqua-search it-search');
-    search.placeholder = '搜索';
+    search.placeholder = t('ui.f04090805c6e');
     const playerTools = el('div', 'it-player-tools');
     playerTools.append(el('span', 'it-speaker', '🔈'), volume, search);
     top.append(controls, lcd, playerTools);
 
     const body = el('div', 'it-library');
     const sidebar = el('aside', 'it-source-list');
-    sidebar.innerHTML = `<h4>资料库</h4><button data-filter="all" class="sel"><i>♫</i>音乐</button>
-      <h4>播放列表</h4><button data-filter="弹幕幻想原创"><i>✦</i>弹幕幻想原创</button>
-      <button data-filter="青春情绪摇滚原创"><i>⚡</i>青春情绪摇滚原创</button>
-      <button data-filter="歌声合成器原创"><i>◉</i>歌声合成器原创</button>
+    sidebar.innerHTML = `<h4>${t('app.it2.db453e3194d7')}</h4><button data-filter="all" class="sel"><i>♫</i>${t('app.it2.1509d4120198')}</button>
+      <h4>${t('app.it.playlists')}</h4><button data-filter=t('app.it2.e4677b6fcfc7')><i>✦</i>${t('app.it2.e4677b6fcfc7')}</button>
+      <button data-filter=t('app.it2.114b4be42eac')><i>⚡</i>${t('app.it2.114b4be42eac')}</button>
+      <button data-filter=t('app.it2.c258c4821d4a')><i>◉</i>${t('app.it2.c258c4821d4a')}</button>
       <div class="it-custom-playlists"></div>
-      <h4>设备</h4><button data-filter="device"><i>▣</i>Leopard Web</button>`;
+      <h4>${t('app.it2.66bdc6d765cf')}</h4><button data-filter="device"><i>▣</i>Leopard Web</button>`;
     const main = el('main', 'it-library-main');
     const album = el('section', 'it-album-head');
     const art = el('div', 'it-artwork');
-    art.innerHTML = '<i>♫</i><b>红雾回廊</b><small>ORIGINAL</small>';
+    art.innerHTML = `<i>♫</i><b>${t('app.it2.404ab3ffebcd')}</b><small>ORIGINAL</small>`;
     const albumInfo = el('div');
-    albumInfo.innerHTML = '<h2>原创演示曲库</h2><p>9 首歌曲 · 3 个风格播放列表</p><small>所有旋律与音色均由本项目原创并通过 WebAudio 实时合成；未收录商业录音。</small>';
+    albumInfo.innerHTML = `<h2>${t('app.it.demoLib')}</h2><p>${t('app.it.demoMeta')}</p><small>${t('app.it.demoNote')}</small>`;
     album.append(art, albumInfo);
     const table = el('div', 'it-song-table');
     const head = el('div', 'it-song-row it-song-head');
-    head.innerHTML = '<span class="it-state"></span><span>#</span><span>名称</span><span>艺术家</span><span>专辑</span><span>类型</span><span>时间</span>';
+    head.innerHTML = `<span class="it-state"></span><span>#</span><span>${t('app.it.e76516a015')}</span><span>${t('app.it.artist')}</span><span>${t('app.it.album')}</span><span>${t('app.it.genre')}</span><span>${t('app.it2.e2b47d374338')}</span>`;
     const list = el('div', 'it-song-list');
     table.append(head, list);
     main.append(album, table);
@@ -455,8 +459,8 @@
       });
     };
     const newPlaylist = () => System.promptSheet({
-      parent:win,title:'新建播放列表',message:'播放列表名称：',value:'未命名播放列表',okLabel:'创建',
-      validate:name=>playlists.some(item=>item.name.toLowerCase()===name.toLowerCase())?'已经存在同名播放列表。':true,
+      parent:win,title:t('ui.05360faee868'),message:t('ui.03ca8922c0db'),value:t('ui.56e9cd69137e'),okLabel:t('ui.fcbd0932929e'),
+      validate:name=>playlists.some(item=>item.name.toLowerCase()===name.toLowerCase())?t('ui.5ab0135c7fa3'):true,
       onOK:name=>{
         const playlist={id:Date.now(),name,tracks:[selected]};
         playlists.push(playlist);localStorage.setItem(PLAYLISTS_KEY,JSON.stringify(playlists));
@@ -469,8 +473,8 @@
       const id=Number(win?.dataset.currentPlaylist);const playlist=playlists.find(item=>item.id===id);
       if(!playlist)return;
       System.confirmSheet({
-        parent:win,title:'删除播放列表',headline:`删除播放列表“${playlist.name}”？`,
-        message:'歌曲仍会保留在 iTunes 资料库中。',okLabel:'删除',danger:true,
+        parent:win,title:t('ui.08a69fc6d980'),headline:t('app.it.delPl', { name: playlist.name }),
+        message:t('ui.c577cdd45609'),okLabel:t('ui.3755f56f2f83'),danger:true,
         onOK:()=>{
           playlists=playlists.filter(item=>item.id!==id);localStorage.setItem(PLAYLISTS_KEY,JSON.stringify(playlists));
           filter='all';win.dataset.currentPlaylist='';renderPlaylists();filterRows();
@@ -505,7 +509,7 @@
     updateUI(ui);
     win = System.createWindow({
       app: 'itunes', title: 'iTunes', width: 900, height: 590, content: root,
-      statusbar: '9 首原创歌曲 · WebAudio 实时合成 · 未包含商业录音',
+      statusbar: t('ui.e3c6cd00e097'),
       onClose: () => {
         stop();
         document.removeEventListener('app-preferences-changed', preferencesChanged);
@@ -537,16 +541,16 @@
         'next-track':() => next.click(),
         'toggle-shuffle':() => {
           ui.shuffle = !ui.shuffle; win.dataset.shuffle = String(ui.shuffle);
-          Leopard.toast('iTunes', ui.shuffle ? '随机播放已开启。' : '随机播放已关闭。');
+          Leopard.toast('iTunes', ui.shuffle ? t('ui.a88a7b4c88b3') : t('ui.ec3267d3dd27'));
         },
         'toggle-repeat-one':() => {
           ui.repeatOne = !ui.repeatOne; win.dataset.repeatOne = String(ui.repeatOne);
-          Leopard.toast('iTunes', ui.repeatOne ? '将重复当前歌曲。' : '将继续播放下一首歌曲。');
+          Leopard.toast('iTunes', ui.repeatOne ? t('app.it.repeatOne') : t('ui.63ff6870e20b'));
         },
-        'store-home':() => System.alertBox('iTunes Store','Leopard Web 不连接商业商店；本地资料库中的曲目均为项目原创合成音乐。'),
-        'check-downloads':() => Leopard.toast('iTunes Store','没有可用的下载项目。'),
+        'store-home':() => System.alertBox('iTunes Store',t('ui.896a29b8fb0e')),
+        'check-downloads':() => Leopard.toast('iTunes Store',t('ui.b07c3a0d339a')),
         'show-equalizer':showEqualizer,
-        'get-artwork':() => Leopard.toast('iTunes','所有原创专辑插图均为最新。'),
+        'get-artwork':() => Leopard.toast('iTunes', t('app.it.artOk')),
       };
       const action = actions[event.detail?.command];
       if (action) { event.preventDefault(); action(); }
@@ -555,7 +559,7 @@
 
   System.registerApp({
     id: 'itunes', name: 'iTunes', icon, open,
-    about: 'Leopard 风格资料库，含弹幕幻想、青春情绪摇滚与歌声合成器三类原创 WebAudio 曲目。',
-    keywords: 'itunes music 音乐 播放 弹幕 摇滚 vocal synth',
+    about: t('ui.8a59da2741bd'),
+    keywords: t('ui.657f7613a80e'),
   });
 })();

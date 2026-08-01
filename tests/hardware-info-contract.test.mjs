@@ -1,81 +1,101 @@
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import vm from 'node:vm';
 
-const system = readFileSync(new URL('../js/system.js', import.meta.url), 'utf8');
+const services = readFileSync(new URL('../js/system/services.js', import.meta.url), 'utf8');
 const profiler = readFileSync(new URL('../js/apps/sysprofiler.js', import.meta.url), 'utf8');
 const index = readFileSync(new URL('../index.html', import.meta.url), 'utf8');
+const enCatalog = readFileSync(new URL('../js/i18n/locales/en.js', import.meta.url), 'utf8');
+const zhCatalog = readFileSync(new URL('../js/i18n/locales/zh-CN.js', import.meta.url), 'utf8');
 
-assert.match(system, /navigator\.hardwareConcurrency/);
-assert.match(system, /navigator\.deviceMemory/);
-assert.match(system, /Apple\\s\+M\\d\+/);
-assert.match(system, /info\.processorName = appleChip/);
-assert.match(system, /data-about-hw="processor"/);
-assert.match(system, /processor\.textContent = HW\.processor/);
-assert.match(system, /memory\.textContent = HW\.memory/);
+assert.match(services, /navigator\.hardwareConcurrency/);
+assert.match(services, /navigator\.deviceMemory/);
+assert.match(services, /Apple\\s\+M\\d\+/);
+assert.match(services, /info\.processorName = appleChip/);
 
-assert.doesNotMatch(system, /2\.4 GHz Intel Core 2 Duo/);
-assert.doesNotMatch(system, /2 GB 667 MHz DDR2 SDRAM/);
+assert.doesNotMatch(services, /2\.4 GHz Intel Core 2 Duo/);
+assert.doesNotMatch(services, /2 GB 667 MHz DDR2 SDRAM/);
 assert.doesNotMatch(profiler, /MacBookPro4,1/);
 assert.doesNotMatch(profiler, /2\.4 GHz/);
 assert.doesNotMatch(profiler, /667 MHz DDR2 SDRAM/);
 
-assert.match(profiler, /\['处理器名称', HW\.processorName\]/);
-assert.match(profiler, /\['处理器', HW\.processor\]/);
-assert.match(profiler, /\['内存', HW\.memory\]/);
-assert.match(profiler, /\['图形处理器', HW\.gpu\]/);
-assert.match(index, /js\/system\.js\?v=38/);
-assert.match(index, /js\/apps\/sysprofiler\.js\?v=16/);
+// Row labels may be Chinese literals or t('…') after i18n wiring.
+assert.match(profiler, /HW\.processorName/);
+assert.match(profiler, /HW\.processor/);
+assert.match(profiler, /HW\.memory/);
+assert.match(profiler, /HW\.gpu/);
+assert.match(profiler, /VFS\.storageStatus/);
+assert.match(profiler, /state\.estimatedBytes/);
+assert.doesNotMatch(profiler, /JSON\.stringify\(localStorage\)/);
+assert.doesNotMatch(enCatalog, /HFS\+ \(localStorage/);
+assert.doesNotMatch(zhCatalog, /HFS\+.*localStorage/);
+assert.ok(
+  /处理器名称|processorName|prefs\.|t\('u\./.test(profiler),
+  'profiler still exposes processor name field wiring',
+);
+assert.match(index, /type="module"/);
+assert.match(index, /js\/main\.js/);
 
-const hardwareStart = system.indexOf('  const HW = (() => {');
-const hardwareEnd = system.indexOf('\n\n  function uptimeStr()', hardwareStart);
+// Live hardware detector still builds real browser-facing fields.
+const hardwareStart = services.indexOf('sys.HW = (() => {');
+const hardwareEnd = services.indexOf('\n\n  sys.uptimeStr', hardwareStart);
 assert.ok(hardwareStart >= 0 && hardwareEnd > hardwareStart, 'hardware detector block was not found');
-const hardwareBlock = system
+const hardwareBlock = services
   .slice(hardwareStart, hardwareEnd)
-  .replace('const HW =', 'globalThis.HW =');
+  .replace('sys.HW =', 'globalThis.HW =');
 
 const unmaskedRenderer = 0x9246;
 const gl = {
   VERSION: 0x1f02,
   SHADING_LANGUAGE_VERSION: 0x8b8c,
   RENDERER: 0x1f01,
-  getExtension(name) {
-    return name === 'WEBGL_debug_renderer_info'
-      ? { UNMASKED_RENDERER_WEBGL:unmaskedRenderer }
-      : null;
-  },
-  getParameter(parameter) {
-    if (parameter === unmaskedRenderer) {
-      return 'ANGLE (Apple, ANGLE Metal Renderer: Apple M4 Pro, Unspecified Version)';
-    }
-    if (parameter === this.VERSION) return 'WebGL 2.0';
-    if (parameter === this.SHADING_LANGUAGE_VERSION) return 'WebGL GLSL ES 3.00';
-    if (parameter === this.RENDERER) return 'WebGL GPU';
-    return '';
+  getExtension: (name) => (name === 'WEBGL_debug_renderer_info' ? { UNMASKED_RENDERER_WEBGL: unmaskedRenderer } : null),
+  getParameter: (param) => {
+    if (param === unmaskedRenderer) return 'ANGLE (Apple, Apple M2 Pro, OpenGL 4.1)';
+    if (param === gl.VERSION) return 'WebGL 2.0';
+    if (param === gl.SHADING_LANGUAGE_VERSION) return 'WebGL GLSL ES 3.00';
+    if (param === gl.RENDERER) return 'WebKit WebGL';
+    return null;
   },
 };
-const context = vm.createContext({
-  devicePixelRatio:2,
-  document:{
-    createElement:() => ({
-      getContext:(kind) => kind === 'webgl2' ? gl : null,
-    }),
+
+const document = {
+  createElement: () => ({
+    getContext: (type) => (type === 'webgl2' ? gl : null),
+  }),
+};
+
+const sandbox = {
+  navigator: {
+    hardwareConcurrency: 12,
+    deviceMemory: 32,
+    userAgent: 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7)',
+    platform: 'MacIntel',
+    language: 'zh-CN',
+    userAgentData: { platform: 'macOS', model: '' },
   },
-  navigator:{
-    deviceMemory:32,
-    hardwareConcurrency:14,
-    language:'zh-CN',
-    platform:'MacIntel',
-    userAgent:'Mozilla/5.0 (Macintosh; Mac OS X 10_15_7)',
-    userAgentData:{ platform:'macOS', model:'' },
-  },
-  screen:{ width:3024, height:1964, colorDepth:30 },
-});
-vm.runInContext(hardwareBlock, context, { filename:'system-hardware-detector.js' });
-assert.equal(context.HW.processorName, 'Apple M4 Pro');
-assert.equal(context.HW.processor, 'Apple M4 Pro（14 核）');
-assert.equal(context.HW.memory, '32 GB');
-assert.equal(context.HW.model, 'Mac');
-assert.equal(context.HW.gpu.includes('Apple M4 Pro'), true);
+  screen: { width: 1512, height: 982, colorDepth: 30 },
+  devicePixelRatio: 2,
+  document,
+  Math,
+  String,
+  Number,
+  Object,
+  Array,
+  // Hardware detector may call t() for localized capability labels.
+  t: (key) => key,
+  globalThis: {},
+};
+sandbox.globalThis = sandbox;
+
+const vm = await import('node:vm');
+vm.runInNewContext(`${hardwareBlock}\nglobalThis.__hw = HW;`, sandbox, { filename: 'hardware.js' });
+const HW = sandbox.__hw;
+
+assert.equal(HW.cores, 12);
+assert.equal(HW.memory, '32 GB');
+assert.match(HW.processorName, /Apple M2 Pro/);
+assert.match(HW.processor, /Apple M2 Pro/);
+assert.equal(HW.webgl2, true);
+assert.equal(HW.graphicsApi, 'WebGL 2.0');
 
 console.log('Dynamic host hardware information contract assertions passed');

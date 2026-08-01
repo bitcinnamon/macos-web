@@ -1,10 +1,19 @@
-// Virtual file system, persisted in localStorage. Shared by Finder, Terminal, TextEdit.
-const VFS = (() => {
-  const KEY = 'macweb.vfs.v1';
+// Synchronous in-memory virtual file system with an asynchronous durable store.
+// Shared by Finder, Terminal, TextEdit and the document panels.
+import {
+  VFS_KEY, VFS_LEGACY_HOME, VFS_HOME_MIGRATION_BACKUP_KEY,
+  HOME_USER, HOME_DISPLAY_NAME, paths, systemPaths,
+} from './config.js';
+import { t, getLocale } from './i18n/index.js';
+import { createVFSStorage } from './vfs-storage.js';
+
+export const VFS = (() => {
+  const KEY = VFS_KEY;
   const HISTORY_LIMIT = 50;
   let undoStack = [];
   let redoStack = [];
   let historySuppressed = 0;
+  let mutationVersion = 0;
 
   const now = () => Date.now();
   const makeId = () => {
@@ -29,82 +38,123 @@ const VFS = (() => {
     Object.values(t).forEach((node) => enrichNode(node, time));
   }
 
+  /** Demo files and copy shown on first boot — follow UI locale. */
+  function demoSeed() {
+    const en = getLocale() === 'en';
+    return en ? {
+      welcomeName: 'Welcome.txt',
+      welcomeBody: 'Welcome to Mac OS X Leopard Web!\n\nDouble-click .txt files to open them in TextEdit.\nTry the apps in the Dock.',
+      listName: 'Shopping List.txt',
+      listBody: 'Milk\nEggs\nBread\nCoffee beans',
+      journalName: 'Journal.txt',
+      journalBody: 'Installed a Mac in the browser today.\nLooks good.',
+      pic1: 'Aurora.svg',
+      pic2: 'Tiger Waves.svg',
+      safariName: 'Welcome to Safari.txt',
+      safariBody: 'Items downloaded in Safari appear here and in the Dock Downloads stack.',
+      siteHtml: '<!doctype html><title>roll’s Site</title><h1>Welcome</h1>',
+      readme: 'This is a pure front-end Mac OS X.\nFiles are stored locally in this browser (IndexedDB when available).',
+      versionName: 'Version.txt',
+      userFileSuffix: ' (user file)',
+      userFileSuffixN: (i) => ` (user file ${i})`,
+    } : {
+      welcomeName: '欢迎.txt',
+      welcomeBody: '欢迎来到 Mac OS X Leopard 网页版！\n\n双击 .txt 文件会用「文本编辑」打开。\n试试 Dock 里的各个应用吧。',
+      listName: '购物清单.txt',
+      listBody: '牛奶\n鸡蛋\n面包\n咖啡豆',
+      journalName: '日记.txt',
+      journalBody: '今天在浏览器里装了一台 Mac。\n感觉不错。',
+      pic1: '极光.svg',
+      pic2: '虎纹波浪.svg',
+      safariName: '欢迎使用 Safari.txt',
+      safariBody: '从 Safari 下载的项目会出现在这里，也会显示在 Dock 的“下载”堆栈中。',
+      siteHtml: '<!doctype html><title>roll 的网站</title><h1>欢迎</h1>',
+      readme: '这是一个纯前端实现的 Mac OS X。\n文件保存在此浏览器的本地存储中（可用时使用 IndexedDB）。',
+      versionName: '版本.txt',
+      userFileSuffix: '（用户文件）',
+      userFileSuffixN: (i) => `（用户文件 ${i}）`,
+    };
+  }
+
   function defaults() {
+    const d = demoSeed();
     return {
       '/': { type: 'dir', children: ['应用程序', '资料库', '系统', '用户'] },
       '/资料库': { type: 'dir', children: ['Application Support', 'Fonts', 'Preferences'] },
       '/资料库/Application Support': { type: 'dir', children: [] },
       '/资料库/Fonts': { type: 'dir', children: [] },
       '/资料库/Preferences': { type: 'dir', children: [] },
-      '/用户': { type: 'dir', children: ['roll'] },
-      '/用户/roll': { type: 'dir', children: ['桌面', '文稿', '下载', '影片', '图片', '音乐', '公共', '站点', 'README.txt', '.废纸篓'] },
-      '/用户/roll/.废纸篓': { type: 'dir', children: [] },
-      '/用户/roll/桌面': { type: 'dir', children: ['欢迎.txt'] },
-      '/用户/roll/桌面/欢迎.txt': { type: 'file', content: '欢迎来到 Mac OS X Leopard 网页版！\n\n双击 .txt 文件会用「文本编辑」打开。\n试试 Dock 里的各个应用吧。' },
-      '/用户/roll/文稿': { type: 'dir', children: ['购物清单.txt', '日记.txt'] },
-      '/用户/roll/文稿/购物清单.txt': { type: 'file', content: '牛奶\n鸡蛋\n面包\n咖啡豆' },
-      '/用户/roll/文稿/日记.txt': { type: 'file', content: '今天在浏览器里装了一台 Mac。\n感觉不错。' },
-      '/用户/roll/图片': { type: 'dir', children: ['极光.svg', '虎纹波浪.svg'] },
-      '/用户/roll/图片/极光.svg': { type: 'file', kind: 'image', src: 'assets/aurora.svg' },
-      '/用户/roll/图片/虎纹波浪.svg': { type: 'file', kind: 'image', src: 'assets/tiger.svg' },
-      '/用户/roll/音乐': { type: 'dir', children: [] },
-      '/用户/roll/下载': { type: 'dir', children: ['欢迎使用 Safari.txt'] },
-      '/用户/roll/下载/欢迎使用 Safari.txt': { type: 'file', content: '从 Safari 下载的项目会出现在这里，也会显示在 Dock 的“下载”堆栈中。' },
-      '/用户/roll/影片': { type: 'dir', children: [] },
-      '/用户/roll/公共': { type: 'dir', children: [] },
-      '/用户/roll/站点': { type: 'dir', children: ['index.html'] },
-      '/用户/roll/站点/index.html': { type: 'file', content: '<!doctype html><title>roll 的网站</title><h1>欢迎</h1>' },
-      '/用户/roll/README.txt': { type: 'file', content: '这是一个纯前端实现的 Mac OS X。\n文件保存在浏览器 localStorage 中。' },
+      [paths.users]: { type: 'dir', children: [HOME_USER] },
+      [paths.home]: { type: 'dir', children: ['桌面', '文稿', '下载', '影片', '图片', '音乐', '公共', '站点', 'README.txt', '.废纸篓'] },
+      [paths.trash]: { type: 'dir', children: [] },
+      [paths.desktop]: { type: 'dir', children: [d.welcomeName] },
+      [`${paths.desktop}/${d.welcomeName}`]: { type: 'file', content: d.welcomeBody },
+      [paths.documents]: { type: 'dir', children: [d.listName, d.journalName] },
+      [`${paths.documents}/${d.listName}`]: { type: 'file', content: d.listBody },
+      [`${paths.documents}/${d.journalName}`]: { type: 'file', content: d.journalBody },
+      [paths.pictures]: { type: 'dir', children: [d.pic1, d.pic2] },
+      [`${paths.pictures}/${d.pic1}`]: { type: 'file', kind: 'image', src: 'assets/aurora.svg' },
+      [`${paths.pictures}/${d.pic2}`]: { type: 'file', kind: 'image', src: 'assets/tiger.svg' },
+      [paths.music]: { type: 'dir', children: [] },
+      [paths.downloads]: { type: 'dir', children: [d.safariName] },
+      [`${paths.downloads}/${d.safariName}`]: { type: 'file', content: d.safariBody },
+      [paths.movies]: { type: 'dir', children: [] },
+      [paths.public]: { type: 'dir', children: [] },
+      [paths.sites]: { type: 'dir', children: ['index.html'] },
+      [`${paths.sites}/index.html`]: { type: 'file', content: d.siteHtml },
+      [`${paths.home}/README.txt`]: { type: 'file', content: d.readme },
       '/应用程序': { type: 'dir', children: [] },
-      '/系统': { type: 'dir', children: ['版本.txt'] },
-      '/系统/版本.txt': { type: 'file', content: 'Mac OS X 10.5 Leopard (Web Edition)\nBuild 9A581-www' },
+      '/系统': { type: 'dir', children: [d.versionName] },
+      [`/系统/${d.versionName}`]: { type: 'file', content: 'Mac OS X 10.5 Leopard (Web Edition)\nBuild 9A581-www' },
     };
   }
 
   // Apps/kexts injected on every load so old saved trees pick up new system files.
-  function ensureSystem(t) {
+  function ensureSystem(tree) {
+    // App labels follow the current UI language (en/zh-CN).
     const apps = [
-      ['Mail', 'mail'], ['通讯录', 'addressbook'], ['iChat', 'ichat'], ['Safari', 'safari'],
-      ['iCal', 'ical'], ['iTunes', 'itunes'], ['Photo Booth', 'photobooth'], ['QuickTime Player', 'quicktime'],
-      ['DVD 播放器', 'dvdplayer'], ['Front Row', 'frontrow'], ['Dictionary', 'dictionary'],
-      ['Automator', 'automator'], ['图像捕捉', 'imagecapture'], ['Dashboard', 'dashboard'],
-      ['Time Machine', 'timemachine'], ['备忘录', 'notes'], ['便笺', 'stickies'], ['文本编辑', 'textedit'],
-      ['计算器', 'calculator'], ['终端', 'terminal'], ['预览', 'preview'], ['国际象棋', 'chess'],
-      ['系统偏好设置', 'sysprefs'],
+      [t('app.mail'), 'mail'], [t('app.addressbook'), 'addressbook'], [t('app.ichat'), 'ichat'], [t('app.safari'), 'safari'],
+      [t('app.ical'), 'ical'], [t('app.itunes'), 'itunes'], [t('app.photobooth'), 'photobooth'], [t('app.quicktime'), 'quicktime'],
+      [t('app.dvdplayer'), 'dvdplayer'], [t('app.frontrow'), 'frontrow'], [t('app.dictionary'), 'dictionary'],
+      [t('app.automator'), 'automator'], [t('app.imagecapture'), 'imagecapture'], [t('app.dashboard'), 'dashboard'],
+      [t('app.timemachine'), 'timemachine'], [t('app.notes'), 'notes'], [t('app.stickies'), 'stickies'], [t('app.textedit'), 'textedit'],
+      [t('app.calculator'), 'calculator'], [t('app.terminal'), 'terminal'], [t('app.preview'), 'preview'], [t('app.chess'), 'chess'],
+      [t('app.sysprefs'), 'sysprefs'],
     ];
     const utils = [
-      ['磁盘工具', 'diskutil'], ['活动监视器', 'activity'], ['控制台', 'consoleapp'],
-      ['系统报告', 'sysprofiler'], ['网络实用工具', 'netutil'], ['字体册', 'fontbook'],
-      ['OpenGL 演示', 'opengl'], ['钥匙串访问', 'keychain'], ['抓图', 'grab'],
-      ['迁移助理', 'migration'], ['Boot Camp 助理', 'bootcamp'],
+      [t('app.diskutil'), 'diskutil'], [t('app.activity'), 'activity'], [t('app.consoleapp'), 'consoleapp'],
+      [t('app.sysprofiler'), 'sysprofiler'], [t('app.netutil'), 'netutil'], [t('app.fontbook'), 'fontbook'],
+      [t('app.opengl'), 'opengl'], [t('app.keychain'), 'keychain'], [t('app.grab'), 'grab'],
+      [t('app.migration'), 'migration'], [t('app.bootcamp'), 'bootcamp'],
     ];
     const childPath = (parent, name) => parent === '/' ? `/${name}` : `${parent}/${name}`;
     const parentPath = (path) => path.slice(0, path.lastIndexOf('/')) || '/';
+    const seed = demoSeed();
     const preserveConflict = (p, parent) => {
       const base = p.slice(p.lastIndexOf('/') + 1);
-      let name = `${base}（用户文件）`, i = 2;
-      while (t[childPath(parent, name)]) name = `${base}（用户文件 ${i++}）`;
+      let name = `${base}${seed.userFileSuffix}`, i = 2;
+      while (tree[childPath(parent, name)]) name = `${base}${seed.userFileSuffixN(i++)}`;
       const dst = childPath(parent, name);
-      Object.keys(t)
+      Object.keys(tree)
         .filter((k) => k === p || k.startsWith(p + '/'))
         .sort((a, b) => a.length - b.length)
         .forEach((k) => {
-          t[dst + k.slice(p.length)] = t[k];
-          delete t[k];
+          tree[dst + k.slice(p.length)] = tree[k];
+          delete tree[k];
         });
-      const siblings = t[parent] && t[parent].children;
+      const siblings = tree[parent] && tree[parent].children;
       const idx = Array.isArray(siblings) ? siblings.indexOf(base) : -1;
       if (idx >= 0) siblings[idx] = name;
       else if (Array.isArray(siblings)) siblings.push(name);
     };
     const put = (p, node, parent) => {
-      if (t[p] && t[p].type !== node.type) preserveConflict(p, parent);
-      if (!t[p]) {
-        t[p] = node;
+      if (tree[p] && tree[p].type !== node.type) preserveConflict(p, parent);
+      if (!tree[p]) {
+        tree[p] = node;
         const base = p.slice(p.lastIndexOf('/') + 1);
-        if (t[parent] && !t[parent].children.includes(base)) t[parent].children.push(base);
+        if (tree[parent] && !tree[parent].children.includes(base)) tree[parent].children.push(base);
       } else if (node.type === 'app' || node.type === 'kext') {
-        t[p] = Object.assign({}, t[p], node); // keep managed metadata fresh without losing dates/id
+        tree[p] = Object.assign({}, tree[p], node); // keep managed metadata fresh without losing dates/id
       }
     };
     put('/应用程序', { type: 'dir', children: [] }, '/');
@@ -115,15 +165,15 @@ const VFS = (() => {
     const removeNode = (path) => {
       const parent = parentPath(path);
       const itemName = path.slice(path.lastIndexOf('/') + 1);
-      Object.keys(t)
+      Object.keys(tree)
         .filter((candidate) => candidate === path || candidate.startsWith(path + '/'))
-        .forEach((candidate) => delete t[candidate]);
-      const children = t[parent]?.children;
+        .forEach((candidate) => delete tree[candidate]);
+      const children = tree[parent]?.children;
       if (!Array.isArray(children)) return;
       const index = children.indexOf(itemName);
       if (index >= 0) children.splice(index, 1);
     };
-    const staleAppPaths = Object.entries(t)
+    const staleAppPaths = Object.entries(tree)
       .filter(([, node]) => node?.type === 'app' && !installedAppIds.has(node.appId))
       .map(([path]) => path)
       .sort((a, b) => a.length - b.length)
@@ -131,7 +181,7 @@ const VFS = (() => {
     const emptiedRootFolders = new Set(staleAppPaths.map(parentPath));
     staleAppPaths.forEach(removeNode);
     emptiedRootFolders.forEach((path) => {
-      if (path !== '/应用程序' && parentPath(path) === '/' && t[path]?.type === 'dir' && t[path].children.length === 0) {
+      if (path !== '/应用程序' && parentPath(path) === '/' && tree[path]?.type === 'dir' && tree[path].children.length === 0) {
         removeNode(path);
       }
     });
@@ -139,36 +189,60 @@ const VFS = (() => {
     put('/资料库/Application Support', { type: 'dir', children: [] }, '/资料库');
     put('/资料库/Fonts', { type: 'dir', children: [] }, '/资料库');
     put('/资料库/Preferences', { type: 'dir', children: [] }, '/资料库');
-    put('/用户/roll/下载', { type: 'dir', children: [] }, '/用户/roll');
-    put('/用户/roll/影片', { type: 'dir', children: [] }, '/用户/roll');
-    put('/用户/roll/公共', { type: 'dir', children: [] }, '/用户/roll');
-    put('/用户/roll/站点', { type: 'dir', children: [] }, '/用户/roll');
-    put('/用户/roll/下载/欢迎使用 Safari.txt', {
+    put(paths.downloads, { type: 'dir', children: [] }, paths.home);
+    put(paths.movies, { type: 'dir', children: [] }, paths.home);
+    put(paths.public, { type: 'dir', children: [] }, paths.home);
+    put(paths.sites, { type: 'dir', children: [] }, paths.home);
+    put(`${paths.downloads}/欢迎使用 Safari.txt`, {
       type: 'file',
       content: '从 Safari 下载的项目会出现在这里，也会显示在 Dock 的“下载”堆栈中。',
-    }, '/用户/roll/下载');
-    apps.forEach(([name, id]) => put(`/应用程序/${name}.app`, { type: 'app', appId: id }, '/应用程序'));
+    }, paths.downloads);
     put('/应用程序/实用工具', { type: 'dir', children: [] }, '/应用程序');
-    utils.forEach(([name, id]) => put(`/应用程序/实用工具/${name}.app`, { type: 'app', appId: id }, '/应用程序/实用工具'));
-    put('/用户/roll/.废纸篓', { type: 'dir', children: [] }, '/用户/roll');
+    const reconcileManagedApps = (entries, parent) => {
+      const childOrder = tree[parent]?.children || [];
+      entries.forEach(([name, id]) => {
+        const candidates = Object.entries(tree)
+          .filter(([path, node]) => parentPath(path) === parent
+            && node?.type === 'app' && node.appId === id)
+          .map(([path, node]) => ({ path, node }))
+          .sort((left, right) => {
+            // Prefer the original installed application over aliases, then
+            // preserve the directory order from the user's existing disk.
+            const aliasOrder = Number(!!left.node.alias) - Number(!!right.node.alias);
+            if (aliasOrder) return aliasOrder;
+            const leftIndex = childOrder.indexOf(left.path.slice(left.path.lastIndexOf('/') + 1));
+            const rightIndex = childOrder.indexOf(right.path.slice(right.path.lastIndexOf('/') + 1));
+            return leftIndex - rightIndex || left.path.localeCompare(right.path);
+          });
+        const keep = candidates.shift();
+        candidates.forEach(({ path }) => removeNode(path));
+        if (keep) {
+          tree[keep.path] = Object.assign({}, keep.node, { type:'app', appId:id, alias:false });
+        } else {
+          put(`${parent}/${name}.app`, { type:'app', appId:id }, parent);
+        }
+      });
+    };
+    // Physical names from an existing disk remain stable. Old builds could
+    // add a second localized node for the same appId after a language change;
+    // only those managed duplicates are removed. User files are untouched.
+    reconcileManagedApps(apps, '/应用程序');
+    reconcileManagedApps(utils, '/应用程序/实用工具');
+    put(paths.trash, { type: 'dir', children: [] }, paths.home);
     put('/系统/扩展', { type: 'dir', children: [] }, '/系统');
     const kexts = [
-      ['System.kext', '系统核心服务', '9.8.0'],
-      ['QuartzExtreme.kext', 'GPU 合成加速（卸载后失去阴影/透明/动画）', '1.5.2'],
-      ['AppleHDA.kext', '高保真音频驱动 (WebAudio)', '1.7.1'],
-      ['IONetworkingFamily.kext', '网络协议栈 (fetch)', '2.0'],
-      ['AppleIntelGMA.kext', '图形驱动 (WebGL)', '5.4.8'],
-      ['IOUSBFamily.kext', 'USB 总线驱动', '3.5.2'],
+      ['System.kext', getLocale() === 'en' ? 'System core services' : '系统核心服务', '9.8.0'],
+      ['QuartzExtreme.kext', getLocale() === 'en' ? 'GPU compositing (shadows/transparency/animation)' : 'GPU 合成加速（卸载后失去阴影/透明/动画）', '1.5.2'],
+      ['AppleHDA.kext', getLocale() === 'en' ? 'High Definition Audio (WebAudio)' : '高保真音频驱动 (WebAudio)', '1.7.1'],
+      ['IONetworkingFamily.kext', getLocale() === 'en' ? 'Networking stack (fetch)' : '网络协议栈 (fetch)', '2.0'],
+      ['AppleIntelGMA.kext', getLocale() === 'en' ? 'Graphics driver (WebGL)' : '图形驱动 (WebGL)', '5.4.8'],
+      ['IOUSBFamily.kext', getLocale() === 'en' ? 'USB bus driver' : 'USB 总线驱动', '3.5.2'],
     ];
     kexts.forEach(([name, desc, ver]) => put(`/系统/扩展/${name}`, { type: 'kext', desc, ver }, '/系统/扩展'));
   }
 
-  function validTree(t) {
+  function validTreeStructure(t) {
     if (!t || typeof t !== 'object' || Array.isArray(t)) return false;
-    const requiredDirs = ['/', '/用户', '/用户/roll', '/系统'];
-    if (!requiredDirs.every((p) => t[p] && t[p].type === 'dir' && Array.isArray(t[p].children))) return false;
-    const managedDirs = ['/应用程序', '/应用程序/实用工具', '/系统/扩展', '/用户/roll/.废纸篓'];
-    if (managedDirs.some((p) => t[p] && (t[p].type !== 'dir' || !Array.isArray(t[p].children)))) return false;
     const entries = Object.entries(t);
     if (!entries.every(([p, node]) => {
       if (typeof p !== 'string' || normalize(p) !== p || !node || typeof node !== 'object' || Array.isArray(node)) return false;
@@ -198,10 +272,105 @@ const VFS = (() => {
     return true;
   }
 
+  function validTree(t) {
+    if (!validTreeStructure(t)) return false;
+    const requiredDirs = ['/', paths.users, paths.home, '/系统'];
+    if (!requiredDirs.every((p) => t[p] && t[p].type === 'dir' && Array.isArray(t[p].children))) return false;
+    const managedDirs = ['/应用程序', '/应用程序/实用工具', '/系统/扩展', paths.trash];
+    return !managedDirs.some((p) => t[p] && (t[p].type !== 'dir' || !Array.isArray(t[p].children)));
+  }
+
+  const pathMetadataKeys = new Set([
+    'path', 'paths', 'from', 'target', 'source', 'destination', 'directory',
+    'folder', 'home', 'parent', 'workingDirectory', 'attachmentPath',
+  ]);
+  const nonPathPayloadKeys = new Set(['content', 'src', 'richText', 'html', 'text', 'data', 'url']);
+
+  function rewriteLegacyPath(value) {
+    if (typeof value !== 'string') return value;
+    if (value === VFS_LEGACY_HOME) return paths.home;
+    return value.startsWith(VFS_LEGACY_HOME + '/')
+      ? paths.home + value.slice(VFS_LEGACY_HOME.length)
+      : value;
+  }
+
+  function rewritePathMetadata(value, key = '', seen = new WeakSet()) {
+    if (typeof value === 'string') return pathMetadataKeys.has(key) ? rewriteLegacyPath(value) : value;
+    if (!value || typeof value !== 'object') return value;
+    if (seen.has(value)) return value;
+    seen.add(value);
+    if (Array.isArray(value)) {
+      for (let index = 0; index < value.length; index++) {
+        value[index] = key === 'paths'
+          ? rewriteLegacyPath(value[index])
+          : rewritePathMetadata(value[index], key, seen);
+      }
+      return value;
+    }
+    Object.keys(value).forEach((childKey) => {
+      if (nonPathPayloadKeys.has(childKey)) return;
+      value[childKey] = rewritePathMetadata(value[childKey], childKey, seen);
+    });
+    return value;
+  }
+
+  /**
+   * Convert a structurally valid legacy disk in memory.  The clone-and-validate
+   * flow makes the replacement atomic from the VFS point of view: callers
+   * either receive a complete new tree or the untouched source tree.
+   */
+  function migrateLegacyHome(stored) {
+    if (VFS_LEGACY_HOME === paths.home || !validTreeStructure(stored)) return null;
+    if (stored[paths.home]?.type === 'dir') return null; // never merge over a valid configured home
+    if (stored[VFS_LEGACY_HOME]?.type !== 'dir') return null;
+
+    const migrated = JSON.parse(JSON.stringify(stored));
+    const legacyPaths = Object.keys(migrated)
+      .filter((path) => path === VFS_LEGACY_HOME || path.startsWith(VFS_LEGACY_HOME + '/'))
+      .sort((a, b) => a.length - b.length);
+    legacyPaths.forEach((oldPath) => {
+      const newPath = paths.home + oldPath.slice(VFS_LEGACY_HOME.length);
+      if (Object.prototype.hasOwnProperty.call(migrated, newPath)) return;
+      migrated[newPath] = migrated[oldPath];
+      delete migrated[oldPath];
+    });
+
+    const users = migrated[paths.users];
+    if (!users || users.type !== 'dir' || !Array.isArray(users.children)) return null;
+    users.children = users.children
+      .map((name) => name === VFS_LEGACY_HOME.slice(VFS_LEGACY_HOME.lastIndexOf('/') + 1) ? HOME_USER : name)
+      .filter((name, index, all) => all.indexOf(name) === index);
+    if (!users.children.includes(HOME_USER)) users.children.push(HOME_USER);
+    Object.values(migrated).forEach((node) => rewritePathMetadata(node));
+    return validTree(migrated) ? migrated : null;
+  }
+
   let tree;
+  let initialPersistAllowed = true;
   try {
-    const stored = JSON.parse(localStorage.getItem(KEY));
-    tree = validTree(stored) ? stored : defaults();
+    const raw = localStorage.getItem(KEY);
+    const stored = raw ? JSON.parse(raw) : null;
+    if (validTree(stored)) {
+      tree = stored;
+    } else {
+      const migrated = migrateLegacyHome(stored);
+      if (migrated) {
+        try {
+          if (localStorage.getItem(VFS_HOME_MIGRATION_BACKUP_KEY) == null) {
+            localStorage.setItem(VFS_HOME_MIGRATION_BACKUP_KEY, raw);
+          }
+          tree = migrated;
+        } catch (error) {
+          // Never overwrite the only legacy copy when the safety backup could
+          // not be written (for example because localStorage quota is full).
+          tree = migrated;
+          initialPersistAllowed = false;
+          console.warn('Leopard Web: HOME migration is read-only until its backup can be saved.', error);
+        }
+      } else {
+        tree = defaults();
+      }
+    }
   } catch (e) {
     tree = defaults();
   }
@@ -212,7 +381,41 @@ const VFS = (() => {
     ensureSystem(tree);
     ensureMetadata(tree);
   }
-  try { localStorage.setItem(KEY, JSON.stringify(tree)); } catch (e) {}
+  const storage = createVFSStorage({ key: KEY });
+  if (initialPersistAllowed) {
+    try { localStorage.setItem(KEY, JSON.stringify(tree)); }
+    catch (error) { storage.reportError(error, 'bootstrap-localstorage'); }
+  } else {
+    storage.reportError(new Error('HOME migration backup could not be saved'), 'home-migration-backup');
+  }
+
+  // IndexedDB hydration completes before main.js registers applications or
+  // starts the desktop.  The mutation guard protects embedders that call the
+  // synchronous API before awaiting ready: their in-memory edits win and the
+  // queued persistence write remains authoritative.
+  const ready = storage.initialize(tree, { allowInitialWrite: initialPersistAllowed })
+    .then((result) => {
+      if (mutationVersion || !result?.tree) return true;
+      const candidate = result.tree;
+      if (!validTree(candidate)) {
+        storage.reportError(new Error('Persisted VFS tree failed structural validation'), 'validate-hydrated-tree');
+        return false;
+      }
+      const beforeSystemRefresh = JSON.stringify(candidate);
+      ensureSystem(candidate);
+      ensureMetadata(candidate);
+      if (!validTree(candidate)) {
+        storage.reportError(new Error('Persisted VFS tree failed validation after system reconciliation'), 'reconcile-hydrated-tree');
+        return false;
+      }
+      tree = candidate;
+      if (JSON.stringify(candidate) !== beforeSystemRefresh && initialPersistAllowed) storage.save(candidate);
+      return true;
+    })
+    .catch((error) => {
+      storage.reportError(error, 'hydrate-vfs');
+      return false;
+    });
 
   function emitHistoryChanged() {
     try {
@@ -226,7 +429,12 @@ const VFS = (() => {
   }
 
   function save(change) {
-    try { localStorage.setItem(KEY, JSON.stringify(tree)); } catch (e) { return false; }
+    if (!initialPersistAllowed) return false;
+    mutationVersion++;
+    // Persistence is asynchronous and serialized by vfs-storage.js. A later
+    // quota/IDB failure is surfaced through storageStatus and the
+    // vfs-storage-status event; it must not roll back newer dependent edits.
+    storage.save(tree);
     try { document.dispatchEvent(new CustomEvent('vfs-changed', { detail: change || null })); } catch (e) {}
     return true;
   }
@@ -235,10 +443,34 @@ const VFS = (() => {
     return JSON.stringify(tree);
   }
 
+  function historyPatch(before, after) {
+    const previous = JSON.parse(before);
+    const next = JSON.parse(after);
+    const paths = new Set([...Object.keys(previous), ...Object.keys(next)]);
+    const patch = [];
+    paths.forEach((path) => {
+      const oldNode = Object.prototype.hasOwnProperty.call(previous, path) ? previous[path] : null;
+      const newNode = Object.prototype.hasOwnProperty.call(next, path) ? next[path] : null;
+      if (JSON.stringify(oldNode) === JSON.stringify(newNode)) return;
+      patch.push({ path, before: oldNode, after: newNode });
+    });
+    return patch;
+  }
+
+  function applyHistoryPatch(patch, side) {
+    patch.forEach((entry) => {
+      const value = entry[side];
+      if (value == null) delete tree[entry.path];
+      else tree[entry.path] = JSON.parse(JSON.stringify(value));
+    });
+  }
+
   function recordHistory(before, after, change) {
     if (historySuppressed || before === after || change?.record === false) return;
+    const patch = historyPatch(before, after);
+    if (!patch.length) return;
     undoStack.push({
-      before, after,
+      patch,
       label: change?.label || '文件操作',
       type: change?.type || 'change',
       paths: Array.isArray(change?.paths) ? change.paths.slice() : [],
@@ -271,7 +503,7 @@ const VFS = (() => {
     const entry = undoStack.pop();
     if (!entry) return false;
     const current = snapshot();
-    tree = JSON.parse(entry.before);
+    applyHistoryPatch(entry.patch, 'before');
     if (!validTree(tree) || !save({ type:'undo', label:entry.label, paths:entry.paths })) {
       tree = JSON.parse(current);
       undoStack.push(entry);
@@ -286,7 +518,7 @@ const VFS = (() => {
     const entry = redoStack.pop();
     if (!entry) return false;
     const current = snapshot();
-    tree = JSON.parse(entry.after);
+    applyHistoryPatch(entry.patch, 'after');
     if (!validTree(tree) || !save({ type:'redo', label:entry.label, paths:entry.paths })) {
       tree = JSON.parse(current);
       redoStack.push(entry);
@@ -518,6 +750,9 @@ const VFS = (() => {
         .filter((candidate) => candidate.startsWith(path === '/' ? '/' : `${path}/`) && tree[candidate]?.type !== 'dir')
         .reduce((total, candidate) => total + sizeOf(candidate), 0);
     }
+    if (node.__vfsBlobs?.content?.size && typeof node.content === 'string' && node.content.startsWith('blob:')) {
+      return node.__vfsBlobs.content.size;
+    }
     if (node.content != null) return byteSize(node.content);
     if (typeof node.src === 'string' && node.src.startsWith('data:')) {
       const comma = node.src.indexOf(',');
@@ -530,6 +765,11 @@ const VFS = (() => {
         catch (e) { return byteSize(payload); }
       }
     }
+    const externalSize = node.__vfsBlobs?.src?.size
+      || node.__vfsBlobs?.data?.size
+      || node.__vfsBlobs?.blob?.size
+      || node.__vfsBlobs?.content?.size;
+    if (Number.isFinite(externalSize)) return externalSize;
     return Number.isFinite(node.size) ? node.size : 0;
   }
 
@@ -570,8 +810,16 @@ const VFS = (() => {
     }
   }
 
+  function storageStatus() {
+    const current = storage.status();
+    const historyBytes = [...undoStack, ...redoStack]
+      .reduce((total, entry) => total + byteSize(JSON.stringify(entry.patch)), 0);
+    return { ...current, historyBytes };
+  }
+
   return { get, list, isDir, writeFile, mkdir, remove, move, copy, rename, walk, exportTree, importTree,
            normalize, parentOf, baseName, uniqueName, sizeOf, updateNode, undo, redo, transaction,
+           ready, flush: () => ready.then(() => storage.flush()), storageStatus, getStorageStatus:storageStatus,
            canUndo: () => !!undoStack.length, canRedo: () => !!redoStack.length,
            undoLabel: () => undoStack.at(-1)?.label || '', redoLabel: () => redoStack.at(-1)?.label || '',
            putNode(p, node) {

@@ -1,3 +1,6 @@
+import { System } from '../system/index.js';
+import { t } from '../i18n/index.js';
+
 // 国际象棋 (Chess) — two-player board with legal move generation (basic rules)
 (() => {
   const { el } = System;
@@ -57,7 +60,7 @@
     const wrap = el('div', 'chess-wrap');
     const boardEl = el('div', 'chess-board');
     const status = el('div', 'chess-status');
-    const reset = el('button', 'aqua-btn', '新游戏');
+    const reset = el('button', 'aqua-btn', t('app.chess.newGame'));
     reset.style.marginTop = '8px';
     wrap.append(boardEl, status, reset);
 
@@ -73,7 +76,7 @@
         sq.addEventListener('click', () => click(r, c));
         boardEl.appendChild(sq);
       }
-      status.textContent = over ? over : (turn === 'w' ? '白方走棋（双人对弈）' : '黑方走棋');
+      status.textContent = over ? over : (turn === 'w' ? t('ui.60aeec89dd6d') : t('app.chess.blackTurn'));
     }
 
     function click(r, c) {
@@ -86,7 +89,7 @@
           board[r][c] = board[sel[0]][sel[1]];
           board[sel[0]][sel[1]] = null;
           if (board[r][c][1] === 'P' && (r === 0 || r === 7)) board[r][c] = board[r][c][0] + 'Q';
-          if (captured && captured[1] === 'K') over = `${turn === 'w' ? '白方' : '黑方'}获胜！🏆`;
+          if (captured && captured[1] === 'K') over = turn === 'w' ? t('app.chess.whiteWins') : t('app.chess.blackWins');
           turn = turn === 'w' ? 'b' : 'w';
           sel = null;
           render();
@@ -100,12 +103,12 @@
 
     reset.addEventListener('click', () => { board = initBoard(); turn = 'w'; sel = null; over = false; render(); });
     render();
-    System.createWindow({ app: 'chess', title: '国际象棋', width: 380, height: 460, content: wrap, noResize: true, bodyBg: '#d8d3c8' });
+    System.createWindow({ app: 'chess', title: t('ui.7703ffda452e'), width: 380, height: 460, content: wrap, noResize: true, bodyBg: '#d8d3c8' });
   }
 
   System.registerApp({
-    id: 'chess', name: '国际象棋', icon, open,
-    about: '双人对弈棋盘，含基本走子规则、吃子、兵升变。吃掉国王获胜。',
-    keywords: 'chess 象棋 棋',
+    id: 'chess', name: t('ui.7703ffda452e'), icon, open,
+    about: t('ui.8e9389a797e2'),
+    keywords: t('ui.55a1287c4398'),
   });
 })();

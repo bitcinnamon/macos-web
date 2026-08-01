@@ -3,10 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; frame-src 'self' blob: https:; connect-src 'self' https:; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Mac OS X Leopard — Web</title>
-<link rel="stylesheet" href="css/aqua.css?v=21">
-  <link rel="stylesheet" href="css/apps.css?v=69">
-  <link rel="stylesheet" href="css/leopard.css?v=25">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' y2='1'%3E%3Cstop stop-color='%23f8fafc'/%3E%3Cstop offset='.52' stop-color='%2389939f'/%3E%3Cstop offset='1' stop-color='%23dce2e8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='7' y='5' width='50' height='54' rx='10' fill='url(%23g)' stroke='%234f5964' stroke-width='2'/%3E%3Ccircle cx='32' cy='33' r='18' fill='%23c7d0d9' stroke='%2376818d' stroke-width='2'/%3E%3Ccircle cx='32' cy='33' r='6' fill='%23eef2f5' stroke='%2376818d'/%3E%3Ccircle cx='49' cy='51' r='2' fill='%234acb4a'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="css/aqua.css?v=72">
+  <link rel="stylesheet" href="css/apps.css?v=72">
+  <link rel="stylesheet" href="css/leopard.css?v=72">
 </head>
 <body>
 
@@ -20,17 +22,17 @@
 
 <!-- Menu bar -->
 <div id="menubar">
-  <div class="mb-left">
-    <div class="mb-item mb-apple" data-menu="apple"></div>
-    <div class="mb-item mb-appname" data-menu="app">Finder</div>
+  <div class="mb-left" role="menubar" aria-label="System menu bar">
+    <div class="mb-item mb-apple" data-menu="apple" role="menuitem" tabindex="0" aria-label="Apple menu" aria-haspopup="menu" aria-expanded="false"></div>
+    <div class="mb-item mb-appname" data-menu="app" role="menuitem" tabindex="0" aria-haspopup="menu" aria-expanded="false">Finder</div>
     <div id="mb-menus"></div>
   </div>
-  <div class="mb-right">
-    <div class="mb-item mb-status" id="mb-volume" title="音量">
+  <div class="mb-right" role="toolbar" aria-label="System status menu">
+    <div class="mb-item mb-status" id="mb-volume" title="Volume" role="button" tabindex="0" data-i18n="menubar.volume" data-i18n-attr="title">
       <svg width="16" height="14" viewBox="0 0 16 14"><path d="M1 5h3l4-4v12L4 9H1z" fill="#333"/><path d="M10 4.5a4 4 0 010 5M12 2.5a7 7 0 010 9" stroke="#333" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
     </div>
-    <div class="mb-item mb-status" id="mb-clock">…</div>
-    <div class="mb-item mb-status" id="mb-spotlight" title="Spotlight">
+    <div class="mb-item mb-status" id="mb-clock" role="button" tabindex="0" aria-haspopup="menu" aria-expanded="false">…</div>
+    <div class="mb-item mb-status" id="mb-spotlight" title="Spotlight" role="button" tabindex="0" data-i18n="menubar.spotlight" data-i18n-attr="title">
       <svg width="14" height="14" viewBox="0 0 14 14"><circle cx="6" cy="6" r="4.2" fill="none" stroke="#333" stroke-width="1.6"/><line x1="9.2" y1="9.2" x2="13" y2="13" stroke="#333" stroke-width="1.8" stroke-linecap="round"/></svg>
     </div>
   </div>
@@ -53,37 +55,13 @@
 
 <!-- Dock -->
 <div id="dock-wrap">
-  <div id="dock">
+  <div id="dock" role="toolbar" aria-label="Dock">
     <div id="dock-apps"></div>
     <div class="dock-sep"></div>
     <div id="dock-right"></div>
   </div>
 </div>
 
-<script src="js/vfs.js?v=15"></script>
-  <script src="js/system.js?v=38"></script>
-<script src="js/apps/finder.js?v=17"></script>
-<script src="js/apps/finder-leopard.js?v=13"></script>
-<script src="js/apps/calculator.js?v=12"></script>
-<script src="js/apps/notes.js?v=12"></script>
-<script src="js/apps/stickies.js?v=12"></script>
-<script src="js/apps/textedit.js?v=14"></script>
-<script src="js/apps/terminal.js?v=12"></script>
-  <script src="js/apps/safari.js?v=19"></script>
-<script src="js/apps/ical.js?v=14"></script>
-<script src="js/apps/preview.js?v=17"></script>
-<script src="js/apps/itunes.js?v=18"></script>
-<script src="js/apps/chess.js?v=12"></script>
-<script src="js/apps/leopard-native.js?v=10"></script>
-<script src="js/apps/sysprefs.js?v=27"></script>
-<script src="js/apps/sysprofiler.js?v=16"></script>
-<script src="js/apps/diskutil.js?v=13"></script>
-<script src="js/apps/activity.js?v=12"></script>
-<script src="js/apps/consoleapp.js?v=12"></script>
-<script src="js/apps/netutil.js?v=12"></script>
-<script src="js/apps/fontbook.js?v=12"></script>
-<script src="js/apps/opengl.js?v=14"></script>
-<script src="js/leopard.js?v=10"></script>
-<script>System.boot(); Leopard.init();</script>
+<script type="module" src="js/main.js?v=72"></script>
 </body>
 </html>

@@ -1,4 +1,10 @@
-// 文本编辑 (TextEdit) — Leopard-style rich-text documents with VFS persistence.
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
+// 文本${t('app.te2.9e58bcb9c382')} (TextEdit) — Leopard-style rich-text documents with VFS persistence.
 (() => {
   const { el } = System;
 
@@ -7,14 +13,43 @@
   function sanitizeRichText(html) {
     const template = document.createElement('template');
     template.innerHTML = String(html || '');
-    template.content.querySelectorAll('script,style,iframe,object,embed,link,meta').forEach((node) => node.remove());
-    template.content.querySelectorAll('*').forEach((node) => {
-      [...node.attributes].forEach((attribute) => {
-        const name = attribute.name.toLowerCase();
-        if (name.startsWith('on') || (['href','src'].includes(name) && /^\s*javascript:/i.test(attribute.value))) {
-          node.removeAttribute(attribute.name);
-        }
-      });
+    const allowedTags = new Set([
+      'B','STRONG','I','EM','U','S','STRIKE','BR','DIV','P','BLOCKQUOTE','PRE',
+      'UL','OL','LI','FONT','SPAN','IMG','A',
+    ]);
+    [...template.content.querySelectorAll('*')].forEach((node) => {
+      if (!allowedTags.has(node.tagName)) {
+        node.replaceWith(document.createTextNode(node.textContent || ''));
+        return;
+      }
+
+      const href = node.tagName === 'A' ? String(node.getAttribute('href') || '').trim() : '';
+      const src = node.tagName === 'IMG' ? String(node.getAttribute('src') || '').trim() : '';
+      const alt = node.tagName === 'IMG' ? String(node.getAttribute('alt') || '') : '';
+      const font = node.tagName === 'FONT' ? {
+        size:String(node.getAttribute('size') || ''),
+        color:String(node.getAttribute('color') || ''),
+        face:String(node.getAttribute('face') || ''),
+      } : null;
+      const alignment = node.style?.textAlign || '';
+      [...node.attributes].forEach((attribute) => node.removeAttribute(attribute.name));
+
+      if (node.tagName === 'A' && /^(?:https?:|mailto:)/i.test(href) && !/[\u0000-\u001f\u007f]/.test(href)) {
+        node.href = href;
+        node.target = '_blank';
+        node.rel = 'noopener noreferrer';
+      }
+      if (node.tagName === 'IMG') {
+        if (/^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/=\s]+$/i.test(src) && src.length <= 4 * 1024 * 1024) node.src = src;
+        if (alt) node.alt = alt.slice(0, 300);
+        node.draggable = false;
+      }
+      if (node.tagName === 'FONT' && font) {
+        if (/^[1-7]$/.test(font.size)) node.setAttribute('size', font.size);
+        if (/^(?:#[0-9a-f]{3,8}|[a-z]{1,20})$/i.test(font.color)) node.setAttribute('color', font.color);
+        if (/^[\w .,'"-]{1,80}$/u.test(font.face)) node.setAttribute('face', font.face);
+      }
+      if (['left','right','center','justify','start','end'].includes(alignment)) node.style.textAlign = alignment;
     });
     return template.innerHTML;
   }
@@ -33,7 +68,7 @@
     const toolbar = el('div', 'te-toolbar');
     const wrap = el('div', 'te-document');
     const ruler = el('div', 'te-ruler');
-    ruler.setAttribute('aria-label', '标尺');
+    ruler.setAttribute('aria-label', t('app.te2.f3f2f47abeec'));
     const rulerMarks = el('div', 'te-ruler-marks');
     rulerMarks.innerHTML = Array.from({ length:12 }, (_, index) => `<i><span>${index + 1}</span></i>`).join('');
     ruler.appendChild(rulerMarks);
@@ -42,7 +77,7 @@
     page.spellcheck = true;
     page.setAttribute('role', 'textbox');
     page.setAttribute('aria-multiline', 'true');
-    page.setAttribute('aria-label', '文稿内容');
+    page.setAttribute('aria-label', t('ui.a13a4fa3b593'));
     const scroll = el('div', 'te-scroll');
     scroll.appendChild(page);
     wrap.append(ruler, scroll);
@@ -75,12 +110,13 @@
       emitDocumentState();
     };
     document.addEventListener('app-preferences-changed', preferencesChanged);
-    const documentName = () => win?._path ? VFS.baseName(win._path) : '未命名';
+    const documentName = () => win?._path ? VFS.baseName(win._path) : t('ui.35563060dc88');
     const updateStatus = () => {
       if (!win?._status) return;
-      const text = page.innerText.replace(/\n$/, '');
+      const raw = page?.innerText ?? page?.textContent ?? '';
+      const text = String(raw).replace(/\n$/, '');
       const words = text.trim() ? text.trim().split(/\s+/u).length : 0;
-      win._status.textContent = `${text.length.toLocaleString()} 个字符 · ${words.toLocaleString()} 个词${win._documentDirty ? ' · 已修改' : ''}`;
+      win._status.textContent = t('ui.charsWords2', { chars: text.length.toLocaleString(), words: words.toLocaleString(), dirty: win._documentDirty ? t('ui.83e8b2389032') : '' });
     };
     const emitDocumentState = () => {
       if (win) {
@@ -116,6 +152,16 @@
       setDirty(false);
       page.focus();
     };
+    page.addEventListener('paste', (event) => {
+      const clipboard = event.clipboardData;
+      if (!clipboard) return;
+      event.preventDefault();
+      const plain = clipboard.getData('text/plain');
+      const rich = richDocument ? clipboard.getData('text/html') : '';
+      if (rich) document.execCommand('insertHTML', false, sanitizeRichText(rich));
+      else document.execCommand('insertText', false, plain);
+      checkDirty();
+    });
 
     const runFormat = (command, value) => {
       page.focus();
@@ -178,7 +224,7 @@
     };
     const showFindPanel = () => {
       const pane = el('div','textedit-find');
-      pane.innerHTML = `<label><span>查找：</span><input class="aqua-input te-find-query"></label><label><span>替换为：</span><input class="aqua-input te-replace-query"></label><label class="spp-check te-find-case"><input type="checkbox" checked> 忽略大小写</label><output></output><div class="te-find-actions"><button class="aqua-btn te-find-previous">上一个</button><button class="aqua-btn te-find-next default">下一个</button><button class="aqua-btn te-replace-one">替换</button><button class="aqua-btn te-replace-all">全部替换</button></div>`;
+      pane.innerHTML = `<label><span>${t('app.te2.e26135d4928d')}</span><input class="aqua-input te-find-query"></label><label><span>${t('app.te2.3809b0b1c2c5')}</span><input class="aqua-input te-replace-query"></label><label class="spp-check te-find-case"><input type="checkbox" checked> ${t('app.te2.d6f2d9a936fe')}</label><output></output><div class="te-find-actions"><button class="aqua-btn te-find-previous">${t('app.te2.60298e4698a4')}</button><button class="aqua-btn te-find-next default">${t('app.te2.2c79f15437ea')}</button><button class="aqua-btn te-replace-one">${t('app.te2.94a29510081a')}</button><button class="aqua-btn te-replace-all">${t('app.te2.d085c435b99f')}</button></div>`;
       const query = pane.querySelector('.te-find-query');
       const replacement = pane.querySelector('.te-replace-query');
       const ignoreCase = pane.querySelector('.te-find-case input');
@@ -186,18 +232,18 @@
       query.value = findState.query;
       const update = () => {
         rebuildMatches(query.value,ignoreCase.checked);
-        status.textContent = query.value ? `找到 ${findState.matches.length} 项` : '请输入要查找的文字。';
+        status.textContent = query.value ? t('ui.findFound', { n: findState.matches.length }) : t('ui.7f7f5b825514');
       };
       const move = (direction) => {
         if (query.value !== findState.query || ignoreCase.checked !== findState.ignoreCase) update();
         if (!findState.matches.length) {
-          status.textContent = '没有找到匹配文字。';
+          status.textContent = t('ui.1f95e3e91611');
           return System.beep();
         }
         findState.index = (findState.index+direction+findState.matches.length)%findState.matches.length;
         const match = findState.matches[findState.index];
         selectOccurrence(match.start,match.length);
-        status.textContent = `第 ${findState.index+1} 项，共 ${findState.matches.length} 项`;
+        status.textContent = t('ui.findNth', { i: findState.index+1, n: findState.matches.length });
       };
       query.addEventListener('input',update);
       ignoreCase.addEventListener('change',update);
@@ -228,18 +274,18 @@
         });
         checkDirty();
         update();
-        status.textContent = `已替换 ${replacements} 项`;
+        status.textContent = t('app.te.replacedN', { n: replacements });
       });
       update();
       System.showSheet({
-        parent:win,title:'查找与替换',content:pane,className:'textedit-find-sheet',initialFocus:query,
-        buttons:[{label:'完成',cancel:true}],
+        parent:win,title:t('ui.cc489deac223'),content:pane,className:'textedit-find-sheet',initialFocus:query,
+        buttons:[{label:t('ui.33246f6a5e5b'),cancel:true}],
       });
     };
     const showFontPanel = () => {
       const selectionRange = capturedRange();
       const pane = el('div','textedit-font-panel');
-      pane.innerHTML = `<label><span>字体：</span><select class="spp-select te-font-family"><option>Helvetica</option><option>Lucida Grande</option><option>Georgia</option><option>Times New Roman</option><option>Monaco</option></select></label><label><span>字号：</span><select class="spp-select te-font-size"><option value="2">10</option><option value="3">13</option><option value="4">16</option><option value="5">20</option><option value="6">26</option><option value="7">36</option></select></label><label><span>文字颜色：</span><select class="spp-select te-font-color"><option value="#111111">黑色</option><option value="#234f7b">深蓝色</option><option value="#982c25">红色</option><option value="#2d742f">绿色</option><option value="#6b3f87">紫色</option></select></label><p class="te-font-preview">Aa 字体预览 123</p>`;
+      pane.innerHTML = `<label><span>${t('app.te2.a8b074bac3b0')}：</span><select class="spp-select te-font-family"><option>Helvetica</option><option>Lucida Grande</option><option>Georgia</option><option>Times New Roman</option><option>Monaco</option></select></label><label><span>${t('app.te2.10129b7752a0')}：</span><select class="spp-select te-font-size"><option value="2">10</option><option value="3">13</option><option value="4">16</option><option value="5">20</option><option value="6">26</option><option value="7">36</option></select></label><label><span>${t('app.te2.e862e1414e42')}</span><select class="spp-select te-font-color"><option value="#111111">${t('app.te2.8080b506a6f8')}</option><option value="#234f7b">${t('app.te2.40ab87b43a3c')}</option><option value="#982c25">${t('app.te2.ba98a2024e93')}</option><option value="#2d742f">${t('app.te2.bb185f756932')}</option><option value="#6b3f87">${t('app.te2.2d917c5fd85a')}</option></select></label><p class="te-font-preview">Aa ${t('app.te2.a8b074bac3b0')}${t('app.te2.95a49c04c144')} 123</p>`;
       const family = pane.querySelector('.te-font-family');
       const size = pane.querySelector('.te-font-size');
       const color = pane.querySelector('.te-font-color');
@@ -252,10 +298,10 @@
       };
       family.addEventListener('change',update);size.addEventListener('change',update);color.addEventListener('change',update);update();
       System.showSheet({
-        parent:win,title:'字体',content:pane,className:'textedit-font-sheet',initialFocus:family,
+        parent:win,title:t('ui.b50d4d8352f5'),content:pane,className:'textedit-font-sheet',initialFocus:family,
         buttons:[
-          {label:'取消',cancel:true},
-          {label:'应用',default:true,action:() => {
+          {label:t('ui.4d0b4688c787'),cancel:true},
+          {label:t('ui.4562024ddec7'),default:true,action:() => {
             restoreRange(selectionRange);
             document.execCommand('fontName',false,family.value);
             document.execCommand('fontSize',false,size.value);
@@ -268,7 +314,7 @@
     const insertLink = () => {
       const selectionRange = capturedRange();
       System.promptSheet({
-        parent:win,title:'添加链接',message:'网页地址：',placeholder:'https://example.com',okLabel:'添加',
+        parent:win,title:t('ui.4676bc6678f0'),message:t('app.te.webLink'),placeholder:'https://example.com',okLabel:t('ui.94191ce210d3'),
         onOK:(value) => {
           let address = String(value || '').trim();
           if (!address) return false;
@@ -290,9 +336,9 @@
       };
       if (!toRich && /<(?:b|strong|i|em|u|font|a|ul|ol|img)\b/i.test(page.innerHTML)) {
         System.confirmSheet({
-          parent:win,headline:'转换为纯文本？',
-          message:'字体、颜色、链接、列表和图像等富文本格式将被移除。',
-          okLabel:'转换',danger:true,onOK:apply,
+          parent:win,headline:t('app.te.makePlain'),
+          message:t('ui.e8dd248949a6'),
+          okLabel:t('app.te2.ffa25ab828e2'),danger:true,onOK:apply,
         });
       } else apply();
     };
@@ -305,26 +351,26 @@
       button.addEventListener('click', () => runFormat(command));
       return button;
     };
-    const bold = makeButton('<b>B</b>', 'bold', '粗体');
-    const italic = makeButton('<i>I</i>', 'italic', '斜体');
-    const underline = makeButton('<u>U</u>', 'underline', '下划线');
-    const alignLeft = makeButton('≡', 'justifyLeft', '左对齐');
-    const alignCenter = makeButton('≡', 'justifyCenter', '居中');
+    const bold = makeButton('<b>B</b>', 'bold', t('ui.67c6b77f89a1'));
+    const italic = makeButton('<i>I</i>', 'italic', t('ui.af5a2c8bffa9'));
+    const underline = makeButton('<u>U</u>', 'underline', t('ui.9bc18ae51e69'));
+    const alignLeft = makeButton('≡', 'justifyLeft', t('app.te2.3ab9b61cb9d1'));
+    const alignCenter = makeButton('≡', 'justifyCenter', t('ui.5009324782b9'));
     alignCenter.classList.add('te-align-center');
-    const alignRight = makeButton('≡', 'justifyRight', '右对齐');
+    const alignRight = makeButton('≡', 'justifyRight', t('app.te2.97e935bbcca6'));
     alignRight.classList.add('te-align-right');
     const sizeSelect = el('select', 'aqua-input te-size');
-    sizeSelect.setAttribute('aria-label', '字号');
-    [['2','小'],['3','常规'],['4','较大'],['5','大'],['6','特大']].forEach(([value, label]) => {
+    sizeSelect.setAttribute('aria-label', t('app.te2.10129b7752a0'));
+    [['2',t('app.te.28a39669a7')],['3',t('app.te.regular')],['4',t('app.te.larger')],['5',t('app.te.5d422c066f')],['6',t('app.te2.de14523bd34f')]].forEach(([value, label]) => {
       const option = el('option', '', label);
       option.value = value;
       if (value === '3') option.selected = true;
       sizeSelect.appendChild(option);
     });
     sizeSelect.addEventListener('change', () => runFormat('fontSize', sizeSelect.value));
-    const saveButton = el('button', 'te-btn te-save', '存储');
+    const saveButton = el('button', 'te-btn te-save', t('ui.091ca5213ef3'));
     saveButton.type = 'button';
-    saveButton.title = '存储 (⌘S)';
+    saveButton.title = t('ui.e8f247507165');
     saveButton.dataset.command = 'save';
     toolbar.append(bold, italic, underline, el('span', 'te-tool-separator'), alignLeft, alignCenter, alignRight, sizeSelect, el('span', 'te-toolbar-space'), saveButton);
     applyPreferences();
@@ -342,7 +388,7 @@
         const warningIcon = el('div', 'te-save-warning-icon');
         warningIcon.innerHTML = icon;
         const copy = el('div');
-        copy.innerHTML = `<h3>要存储对文稿“${documentName()}”所做的更改吗？</h3><p>如果不存储，您的更改将丢失。</p>`;
+        copy.innerHTML = `<h3>${t('app.te.saveChanges', { name: documentName() })}</h3><p>${t('app.te.loseChanges')}</p>`;
         body.append(warningIcon, copy);
         const finishClose = () => setTimeout(() => {
           if (window.isConnected) System.closeWindow(window);
@@ -350,9 +396,9 @@
         closePrompt = System.showSheet({
           parent:window, title:'', content:body, className:'te-save-warning-sheet',
           buttons:[
-            { label:'取消', cancel:true },
-            { label:'不存储', danger:true, action:() => { setDirty(false); finishClose(); } },
-            { label:'存储', default:true, action:() => setTimeout(() => doSave(false, finishClose), 170) },
+            { label:t('ui.4d0b4688c787'), cancel:true },
+            { label:t('ui.de1b2ada2597'), danger:true, action:() => { setDirty(false); finishClose(); } },
+            { label:t('ui.091ca5213ef3'), default:true, action:() => setTimeout(() => doSave(false, finishClose), 170) },
           ],
           onClose:() => { closePrompt = null; },
         });
@@ -381,7 +427,7 @@
         console.error('TextEdit save failed:', error);
       }
       if (!saved) {
-        System.alertBox('文本编辑', '无法存储文件。请确认目标文件夹仍然存在，并重试。');
+        System.alertBox(t('ui.868a514aef84'), t('ui.02e7fac011aa'));
         return false;
       }
       win._path = targetPath;
@@ -389,7 +435,7 @@
       setDirty(false);
       System.addRecentDocument?.(targetPath, 'textedit');
       clearTimeout(saveFeedbackTimer);
-      win._title.textContent = `${documentName()} — 已存储`;
+      win._title.textContent = `${documentName()} — ${t('app.te2.7e0fc9b90334')}`;
       saveFeedbackTimer = setTimeout(() => {
         if (win.isConnected) win._title.textContent = documentName();
       }, 900);
@@ -402,13 +448,13 @@
         if (saved) onSaved?.();
         return saved;
       }
-      const directory = win._path ? VFS.parentOf(win._path) : '/用户/roll/文稿';
+      const directory = win._path ? VFS.parentOf(win._path) : paths.documents;
       const extension = richDocument ? 'rtf' : preferences.addTxtExtension === false ? '' : 'txt';
-      const suggested = win._path ? VFS.baseName(win._path) : VFS.uniqueName(directory, '未命名', extension ? `.${extension}` : '');
+      const suggested = win._path ? VFS.baseName(win._path) : VFS.uniqueName(directory, t('ui.35563060dc88'), extension ? `.${extension}` : '');
       System.savePanel({
-        parent:win, title:'存储文稿', startPath:directory,
+        parent:win, title:t('ui.8f588809f08d'), startPath:directory,
         name:suggested, extension:extension || undefined,
-        typeLabel:richDocument ? '多信息文本文稿' : '纯文本文稿', allowOverwrite:true,
+        typeLabel:richDocument ? t('ui.f45f80425bf4') : t('ui.0373f454fa15'), allowOverwrite:true,
         onSave:(targetPath) => {
           const saved = writeTo(targetPath);
           if (saved) onSaved?.();
@@ -421,10 +467,10 @@
     function revertDocument() {
       if (!win._path || !win._documentDirty) return;
       System.confirmSheet({
-        parent:win, title:'复原文稿',
-        headline:`要复原到上次存储的“${documentName()}”吗？`,
-        message:'自上次存储以来所做的更改将会丢失。',
-        okLabel:'复原', danger:true, onOK:loadSavedDocument,
+        parent:win, title:t('ui.47a932875db2'),
+        headline:t('app.te.revertTo', { name: documentName() }),
+        message:t('ui.52f711105e09'),
+        okLabel:t('app.te2.6a3a4ac1ad35'), danger:true, onOK:loadSavedDocument,
       });
     }
 
@@ -456,7 +502,7 @@
       if (command === 'open-document') {
         event.preventDefault();
         System.openPanel({
-          parent:win, title:'打开文稿', startPath:win._path ? VFS.parentOf(win._path) : '/用户/roll/文稿',
+          parent:win, title:t('ui.af5b1c2db6f3'), startPath:win._path ? VFS.parentOf(win._path) : paths.documents,
           types:['txt','text','rtf','md','html','htm'], allowUpload:true,
           onOpen:(nextPath) => {
             System.addRecentDocument?.(nextPath, 'textedit');
@@ -510,8 +556,8 @@
   }
 
   System.registerApp({
-    id:'textedit', name:'文本编辑', icon, open, multiWindow:true,
-    about:'Leopard 文本编辑：富文本格式、标尺、字符统计、文稿撤销，以及关闭前的存储确认。',
-    keywords:'textedit 编辑 写作 富文本 文稿',
+    id:'textedit', name:t('ui.868a514aef84'), icon, open, multiWindow:true,
+    about:t('app.te.about'),
+    keywords:t('app.te.keywords'),
   });
 })();

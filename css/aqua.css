@@ -23,7 +23,7 @@ body {
   background: #bfbfbf;
   background: radial-gradient(ellipse at center, #d8d8d8 0%, #a8a8a8 100%);
   display: flex; align-items: center; justify-content: center;
-  transition: opacity .6s ease;
+  transition: opacity var(--boot-fade-duration, .5s) ease;
 }
 #boot.fade { opacity: 0; pointer-events: none; }
 .boot-inner { text-align: center; }
@@ -83,6 +83,15 @@ body[data-wallpaper="sunrise"] #desktop { background: linear-gradient(180deg, #2
 .mb-item {
   display: flex; align-items: center; padding: 0 10px;
   white-space: nowrap;
+}
+.mb-item:focus-visible {
+  outline: 1px solid rgba(35,91,171,.9);
+  outline-offset: -2px;
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.55);
+}
+.tl-btn:focus-visible {
+  outline: 2px solid rgba(36,111,208,.9);
+  outline-offset: 2px;
 }
 .mb-appname { font-weight: bold; }
 .mb-apple { padding: 0 12px 0 14px; }

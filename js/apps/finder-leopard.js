@@ -1,3 +1,14 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { ICONS } from '../icons.js';
+import { Leopard } from '../leopard.js';
+import { paths, HOME_USER } from '../config.js';
+import { t } from '../i18n/index.js';
+import {
+  finderDisplayName, finderDisplayPath, finderSidebarRoute,
+  finderVisibleChildren,
+} from '../finder-display.js';
+
 // Leopard Finder — four views, Quick Look, content search, richer actions and menus.
 (() => {
   const { el } = System;
@@ -86,11 +97,7 @@
 
   const esc = (s) => String(s == null ? '' : s)
     .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-  const displayPath = (path) => path
-    .replace(/^\/用户/, '/Users')
-    .replace(/^\/应用程序/, '/Applications')
-    .replace(/^\/资料库/, '/Library')
-    .replace(/^\/系统/, '/System');
+  const displayPath = (path) => finderDisplayPath(path);
   const nodeIcon = (path) => System.fileIconFor?.(path) || (VFS.get(path)?.type === 'dir' ? ICONS.folder : ICONS.textfile);
   let cachedFinderPrefs = System.getFinderPreferences();
   const finderPrefs = () => cachedFinderPrefs;
@@ -101,7 +108,8 @@
   const displayName = (path) => {
     const node = VFS.get(path);
     const name = VFS.baseName(path);
-    if (node?.type === 'app') return name.replace(/\.app$/i, '');
+    const localized = finderDisplayName(path, node, (appId) => System.apps[appId]?.name || '');
+    if (localized !== name || node?.type === 'app') return localized;
     if (finderPrefs().showAllExtensions || node?.type !== 'file') return name;
     const ext = extensionOf(name);
     const known = new Set([
@@ -117,15 +125,15 @@
   const isMovieNode = (path, node = VFS.get(path)) => node?.kind === 'video'
     || String(node?.mime || '').startsWith('video/')
     || ['mp4','m4v','mov','webm'].includes(extensionOf(path));
-  const kindName = (node) => node?.type === 'dir' ? '文件夹'
-    : node?.type === 'app' ? '应用程序'
-    : node?.type === 'kext' ? '系统扩展'
-    : node?.kind === 'image' ? '图像'
-    : node?.mime === 'application/pdf' ? 'PDF 文稿'
-    : '文稿';
+  const kindName = (node) => node?.type === 'dir' ? t('ui.46ecac29102a')
+    : node?.type === 'app' ? t('ui.8a443802664a')
+    : node?.type === 'kext' ? t('ui.551ce8e4a4d7')
+    : node?.kind === 'image' ? t('ui.0a0ce84ddefc')
+    : node?.mime === 'application/pdf' ? t('ui.0d68043ba5ee')
+    : t('ui.908a913cf12c');
   const formatBytes = (bytes) => {
     const value = Math.max(0, Number(bytes) || 0);
-    if (value < 1024) return `${value.toLocaleString()} 字节`;
+    if (value < 1024) return `${value.toLocaleString()} ${t('app.fnd3.c49f44df7758')}`;
     const units = ['KB', 'MB', 'GB'];
     let amount = value / 1024;
     let unit = units[0];
@@ -161,19 +169,26 @@
     return [...win._finderSelection].filter((path) => VFS.get(path));
   }
 
+  const isHomeApplicationsAlias = (win, path) => win?._path === paths.home && path === '/应用程序';
+  const isProtectedSystemPath = (path) => ['/', '/应用程序', '/资料库', '/系统', paths.users].includes(path);
+  const isReadOnlySelection = (win, path) => isHomeApplicationsAlias(win, path)
+    || isProtectedSystemPath(path)
+    || ['app','kext'].includes(VFS.get(path)?.type);
+  const hasReadOnlySelection = (win) => selectedPaths(win).some((path) => isReadOnlySelection(win, path));
+
   function refreshSelection(win) {
     const selected = new Set(selectedPaths(win));
     if (win._finderSelected && !selected.has(win._finderSelected)) win._finderSelected = selected.values().next().value || null;
     win.querySelectorAll('.f-icon,.finder-list-row,.cover-strip-item,.column-item').forEach((node) =>
       node.classList.toggle('sel', selected.has(node.dataset.path)));
     if (win._status) {
-      if (!selected.size) win._status.textContent = `${fileRows(win).length} 项`;
-      else if (selected.size > 1) win._status.textContent = `已选择 ${selected.size} 项`;
+      if (!selected.size) win._status.textContent = t('app.fnd.nItems', { n: fileRows(win).length });
+      else if (selected.size > 1) win._status.textContent = t('app.fnd.selItems', { n: selected.size });
       else {
         const path = selected.values().next().value;
         const node = VFS.get(path);
         win._status.textContent = node
-          ? `已选择 1 项 — ${node.type === 'dir' ? `${(VFS.list(path) || []).length} 个项目，${formatBytes(VFS.sizeOf(path))}` : formatBytes(VFS.sizeOf(path))}`
+          ? `${t('app.fnd3.d03cf532b66d')} — ${node.type === 'dir' ? `${(VFS.list(path) || []).length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}，${formatBytes(VFS.sizeOf(path))}` : formatBytes(VFS.sizeOf(path))}`
           : '';
       }
     }
@@ -222,7 +237,7 @@
       win._forward.length = 0;
     }
     win._path = path;
-    win._sidebarRoute = sidebarRoute;
+    win._sidebarRoute = sidebarRoute || finderSidebarRoute(path);
     win._columnTrail = [];
     win._finderSelected = null;
     win._finderSelection = new Set();
@@ -231,12 +246,12 @@
 
   function createFolder(win) {
     if (!win || !VFS.isDir(win._path)) return;
-    const suggested = VFS.uniqueName(win._path, '未命名文件夹', '');
+    const suggested = VFS.uniqueName(win._path, t('ui.4e2204bec6c1'), '');
     System.promptSheet({
-      parent: win, title: '新建文件夹', message: '请输入新文件夹的名称：',
-      value: suggested, okLabel: '新建',
+      parent: win, title: t('ui.95cf3cd4212b'), message: t('ui.4f708d3f1326'),
+      value: suggested, okLabel: t('ui.0cda8d1c7182'),
       validate: (name) => !name.includes('/') && name !== '.' && name !== '..'
-        && !VFS.get(`${win._path}/${name}`) || '这个名称不可用，或已有同名项目。',
+        && !VFS.get(`${win._path}/${name}`) || t('ui.596531d15b98'),
       onOK: (name) => {
         const path = VFS.normalize(`${win._path}/${name}`);
         if (!VFS.mkdir(path)) return false;
@@ -250,9 +265,9 @@
 
   function duplicateSelection(win) {
     const paths = selectedPaths(win);
-    if (!win || !paths.length) return;
+    if (!win || !paths.length || hasReadOnlySelection(win)) return;
     const copies = [];
-    VFS.transaction(paths.length === 1 ? `复制“${VFS.baseName(paths[0])}”` : `复制 ${paths.length} 个项目`, () => {
+    VFS.transaction(paths.length === 1 ? `${t('app.fnd3.4ef4b409367f')}“${VFS.baseName(paths[0])}”` : `${t('app.fnd3.4ef4b409367f')} ${paths.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}`, () => {
       paths.forEach((path) => {
         const copy = VFS.copy(path, VFS.parentOf(path));
         if (copy) copies.push(copy);
@@ -267,12 +282,12 @@
 
   function makeAliases(win) {
     const paths = selectedPaths(win);
-    if (!win || !paths.length) return;
+    if (!win || !paths.length || hasReadOnlySelection(win)) return;
     const aliases = [];
-    VFS.transaction(paths.length === 1 ? '制作替身' : `制作 ${paths.length} 个替身`, () => {
+    VFS.transaction(paths.length === 1 ? t('ui.135c2ef2d8f3') : `${t('app.fnd3.c4ad0b6f5d12')} ${paths.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.1635cb40e606')}`, () => {
       paths.forEach((path) => {
         const parent = VFS.parentOf(path);
-        const aliasName = VFS.uniqueName(parent, `${VFS.baseName(path)} 的替身`, '');
+        const aliasName = VFS.uniqueName(parent, `${VFS.baseName(path)} ${t('app.fnd3.d13a1adafdeb')}`, '');
         const aliasPath = VFS.normalize(`${parent}/${aliasName}`);
         if (VFS.putNode(aliasPath, {
           type:'file', kind:'alias', target:path,
@@ -291,14 +306,14 @@
     if (!win) return;
     System.promptSheet({
       parent:win,
-      title:'前往文件夹',
-      message:'输入要前往的文件夹路径：',
-      value:displayPath(win._path || '/用户/roll'),
-      placeholder:'/Users/roll/文稿',
-      okLabel:'前往',
+      title:t('ui.ee8663c7aa2f'),
+      message:t('ui.9075fbfa0487'),
+      value:displayPath(win._path || paths.home),
+      placeholder:`/Users/${HOME_USER}/文稿`,
+      okLabel:t('ui.23926d61468c'),
       validate:(value) => {
         const path = normalizeEnteredPath(value);
-        return VFS.isDir(path) || '找不到该文件夹。请检查名称并再试一次。';
+        return VFS.isDir(path) || t('ui.8b0d207a06e0');
       },
       onOK:(value) => {
         openPath(win, normalizeEnteredPath(value));
@@ -309,7 +324,7 @@
 
   function normalizeEnteredPath(value) {
     let path = String(value || '').trim();
-    if (path === '~' || path.startsWith('~/')) path = `/用户/roll${path.slice(1)}`;
+    if (path === '~' || path.startsWith('~/')) path = `${paths.home}${path.slice(1)}`;
     path = path
       .replace(/^\/Users(?=\/|$)/i, '/用户')
       .replace(/^\/Applications(?=\/|$)/i, '/应用程序')
@@ -324,17 +339,17 @@
     const content = el('div', 'finder-connect-server');
     const copy = el('div', 'finder-connect-copy');
     copy.innerHTML = `<div class="finder-connect-icon">${ICONS.folder}</div>
-      <div><h3>连接服务器</h3><p>输入服务器地址，例如 smb://server/share 或 afp://server/share。</p></div>`;
+      <div><h3>${t('app.fnd2.c92b1c7abc3e')}</h3><p>${t('app.fnd2.0d85cc1b8912')}</p></div>`;
     const label = el('label', 'finder-server-address');
-    label.append(document.createTextNode('服务器地址：'));
+    label.append(document.createTextNode(t('ui.c9d773e1abca')));
     const input = el('input', 'aqua-input');
-    input.value = recent[0]?.url || 'smb://Leopard-Web.local/公共';
+    input.value = recent[0]?.url || t('ui.318f0b2cc871');
     label.appendChild(input);
     const error = el('div', 'aqua-sheet-error');
     content.append(copy, label, error);
     if (recent.length) {
       const recentWrap = el('div', 'finder-recent-servers');
-      recentWrap.appendChild(el('strong', '', '最近使用的服务器'));
+      recentWrap.appendChild(el('strong', '', t('ui.2f4a8c538e76')));
       recent.forEach((entry) => {
         const button = el('button', '', `${ICONS.folder}<span><b>${esc(entry.name)}</b><small>${esc(entry.url)}</small></span>`);
         button.addEventListener('click', () => { input.value = entry.url; input.focus(); input.select(); });
@@ -347,36 +362,36 @@
       let parsed;
       try { parsed = new URL(address); } catch (e) {}
       if (!parsed || !['smb:','afp:','ftp:','http:','https:'].includes(parsed.protocol) || !parsed.hostname) {
-        error.textContent = '请输入包含协议与主机名的有效服务器地址。';
+        error.textContent = t('ui.103ac5b4a9ed');
         input.focus(); input.select();
         return false;
       }
-      const share = decodeURIComponent(parsed.pathname.split('/').filter(Boolean).at(-1) || '共享');
+      const share = decodeURIComponent(parsed.pathname.split('/').filter(Boolean).at(-1) || t('ui.9a236964e80d'));
       const host = parsed.hostname.replace(/\.local$/i, '');
       const name = `${host} — ${share}`.replace(/[/:]/g, '-').slice(0, 60);
-      const mountPath = VFS.normalize(`/用户/roll/公共/${name}`);
+      const mountPath = VFS.normalize(`${paths.public}/${name}`);
       if (!VFS.isDir(mountPath) && !VFS.mkdir(mountPath)) {
-        error.textContent = '无法装载该服务器。';
+        error.textContent = t('ui.5fe01d5fc977');
         return false;
       }
-      const welcome = `${mountPath}/关于此共享.txt`;
+      const welcome = `${mountPath}/${t('app.fnd.aboutShare')}.txt`;
       if (!VFS.get(welcome)) {
         VFS.writeFile(welcome,
-          `已连接到 ${address}\n\n浏览器无法直接装载 SMB/AFP 卷，因此此处以 Leopard 虚拟共享卷呈现。`);
+          `${t('app.fnd3.431d969fcf6c')} ${address}\n\n${t('app.fnd3.0bf761ef792d')}。`);
       }
       saveConnectedServers([
         { url:address, name, path:mountPath, at:Date.now() },
         ...recent.filter((entry) => entry.url !== address),
       ]);
       openPath(win, mountPath, true, `server:${address}`);
-      Leopard.toast('Finder', `已连接到“${name}”。`);
+      Leopard.toast('Finder', t('app.fnd.connected', { name }));
       return true;
     };
     System.showSheet({
-      parent:win, title:'连接服务器', content, className:'finder-connect-server-sheet', initialFocus:input,
+      parent:win, title:t('ui.65c83822b5e6'), content, className:'finder-connect-server-sheet', initialFocus:input,
       buttons:[
-        { label:'取消', cancel:true },
-        { label:'连接', default:true, action:connect },
+        { label:t('ui.4d0b4688c787'), cancel:true },
+        { label:t('ui.7328deebb5bc'), default:true, action:connect },
       ],
     });
     requestAnimationFrame(() => input.select());
@@ -387,8 +402,8 @@
     if (paths.length !== 1) return;
     const path = paths[0];
     const node = VFS.get(path);
-    if (!node || node.type === 'app' || node.type === 'kext') {
-      if (win?._status) win._status.textContent = '这个系统项目不能重新命名。';
+    if (!node || isReadOnlySelection(win, path)) {
+      if (win?._status) win._status.textContent = t('ui.0fb4733ca3fe');
       return;
     }
     const oldName = VFS.baseName(path);
@@ -409,7 +424,7 @@
       if (!renamed) {
         input.disabled = false;
         input.classList.add('invalid');
-        win._status.textContent = '无法重新命名这个项目。';
+        win._status.textContent = t('ui.5281afc1209e');
         input.focus();
         return false;
       }
@@ -429,7 +444,7 @@
             || VFS.get(`${VFS.parentOf(path)}/${nextName}`)) {
           input.classList.add('invalid');
           input.setAttribute('aria-invalid', 'true');
-          win._status.textContent = '这个名称不可用，或已有同名项目。';
+          win._status.textContent = t('ui.596531d15b98');
           input.focus();
           input.select();
           return;
@@ -442,10 +457,10 @@
           input.disabled = true;
           System.confirmSheet({
             parent:win,
-            headline:'确定要更改扩展名吗？',
-            message:`如果将扩展名从“${oldExtension || '无'}”更改为“${nextExtension || '无'}”，文稿可能会由其他应用程序打开。`,
-            cancelLabel:'保留原扩展名',
-            okLabel:nextExtension ? `使用 .${nextExtension}` : '移除扩展名',
+            headline:t('ui.a6db2e763493'),
+            message:`${t('app.fnd3.8d6625896717')}“${oldExtension || t('ui.72077749f794')}”${t('app.fnd3.920d13bad175')}“${nextExtension || t('ui.72077749f794')}”，${t('app.fnd2.2b286d542214')}${t('app.fnd3.61b414a96521')}${t('app.fnd2.ce77353ca0b8')}${t('app.fnd2.eecb67fc4d8e')}${t('app.fnd3.fa38fa8553a0')}。`,
+            cancelLabel:t('ui.598679aff765'),
+            okLabel:nextExtension ? `${t('app.fnd3.af775218fe2d')} .${nextExtension}` : t('ui.85fd6e0872ad'),
             onOK:() => {
               confirmingExtension = false;
               input.disabled = false;
@@ -486,9 +501,9 @@
 
   function copySelection(win, operation = 'copy') {
     const paths = selectedPaths(win);
-    if (!paths.length) return;
+    if (!paths.length || hasReadOnlySelection(win)) return;
     clipboard = { operation, paths };
-    if (win._status) win._status.textContent = `${operation === 'cut' ? '已剪切' : '已拷贝'} ${paths.length} 项`;
+    if (win._status) win._status.textContent = t('app.fnd.opItems', { op: operation === 'cut' ? t('ui.35b41390bd45') : t('ui.959cb338c6a9'), n: paths.length });
   }
 
   function runPaste(win, conflict) {
@@ -496,8 +511,8 @@
     const sourcePaths = clipboard.paths.slice();
     const next = [];
     const operation = clipboard.operation;
-    const verb = operation === 'cut' ? '移动' : '拷贝';
-    VFS.transaction(`${verb} ${sourcePaths.length} 个项目`, () => {
+    const verb = operation === 'cut' ? t('ui.591f3aa55fda') : t('ui.bc6d0279b622');
+    VFS.transaction(`${verb} ${sourcePaths.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}`, () => {
       sourcePaths.forEach((path) => {
         if (!VFS.get(path)) return;
         const options = { conflict, label:`${verb}“${VFS.baseName(path)}”` };
@@ -527,37 +542,37 @@
     iconWrap.innerHTML = nodeIcon(collisions[0]);
     const copy = el('div');
     const headline = el('h3', '', collisions.length === 1
-      ? `“${VFS.baseName(collisions[0])}”已存在。`
-      : `有 ${collisions.length} 个同名项目。`);
-    const message = el('p', '', '您要替换目的位置中的项目，还是保留两个版本？');
+      ? `“${VFS.baseName(collisions[0])}”${t('app.fnd3.165708d38f3a')}。`
+      : t('app.fnd.collisions', { n: collisions.length }));
+    const message = el('p', '', t('ui.d9bb8716b8ac'));
     copy.append(headline, message);
     body.append(iconWrap, copy);
     System.showSheet({
-      parent:win, title:'拷贝项目', content:body, className:'finder-conflict-panel',
+      parent:win, title:t('ui.95eefa02996a'), content:body, className:'finder-conflict-panel',
       buttons:[
-        { label:'取消', cancel:true },
-        { label:'保留两个', action:() => runPaste(win) },
-        { label:'替换', default:true, danger:true, action:() => runPaste(win, 'replace') },
+        { label:t('ui.4d0b4688c787'), cancel:true },
+        { label:t('ui.066062161ae7'), action:() => runPaste(win) },
+        { label:t('ui.855241c2854e'), default:true, danger:true, action:() => runPaste(win, 'replace') },
       ],
     });
   }
 
   function trashSelection(win) {
     const paths = selectedPaths(win);
-    if (!paths.length) return;
-    const label = paths.length === 1 ? `将“${VFS.baseName(paths[0])}”移到废纸篓` : `将 ${paths.length} 个项目移到废纸篓`;
+    if (!paths.length || hasReadOnlySelection(win)) return;
+    const label = paths.length === 1 ? t('app.fnd.moveTrash1', { name: VFS.baseName(paths[0]) }) : t('app.fnd.moveTrashN', { n: paths.length });
     VFS.transaction(label, () => paths.forEach((path) => System.moveToTrash(path)), { paths });
     clearSelection(win);
   }
 
   function permanentlyDeleteSelection(win) {
     const paths = selectedPaths(win);
-    if (!paths.length) return;
-    const label = paths.length === 1 ? `“${VFS.baseName(paths[0])}”` : `这 ${paths.length} 个项目`;
+    if (!paths.length || hasReadOnlySelection(win)) return;
+    const label = paths.length === 1 ? `“${VFS.baseName(paths[0])}”` : t('app.fnd.thisN', { n: paths.length });
     System.confirmSheet({
-      parent: win, title: '立即删除', headline: `确定永久删除${label}吗？`,
-      message: '此操作无法撤销。', okLabel: '删除', danger: true,
-      onOK: () => VFS.transaction('永久删除项目',
+      parent: win, title: t('ui.d56f902664ee'), headline: t('app.fnd.deleteQ', { label }),
+      message: t('ui.ab107fd462e6'), okLabel: t('ui.3755f56f2f83'), danger: true,
+      onOK: () => VFS.transaction(t('ui.26e1219356c7'),
         () => paths.forEach((path) => VFS.remove(path, { record:false })),
         { paths, record:false }),
     });
@@ -583,11 +598,11 @@
   function restoreItem(path) {
     const node = VFS.get(path);
     if (!node) return;
-    let dest = node.from ? VFS.parentOf(node.from) : '/用户/roll/文稿';
-    if (!VFS.isDir(dest)) dest = '/用户/roll/文稿';
+    let dest = node.from ? VFS.parentOf(node.from) : paths.documents;
+    if (!VFS.isDir(dest)) dest = paths.documents;
     VFS.move(path, dest, {
       sourcePatch:{ from:null },
-      label:`放回“${VFS.baseName(path)}”`,
+      label:`${t('app.fnd3.503b96a6607a')}“${VFS.baseName(path)}”`,
     });
   }
 
@@ -595,40 +610,41 @@
     const node = VFS.get(path);
     if (!node) return;
     const name = VFS.baseName(path);
+    const visibleName = displayName(path);
     const c = el('div', 'finder-info');
     const childCount = node.type === 'dir' ? VFS.walk(path).length - 1 : 0;
     const size = node.type === 'dir'
-      ? `${formatBytes(VFS.sizeOf(path))}（${childCount} 个项目）`
+      ? `${formatBytes(VFS.sizeOf(path))}（${childCount}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}）`
       : formatBytes(VFS.sizeOf(path));
     c.innerHTML = `<div class="finder-info-icon">${nodeIcon(path)}</div>
-      <h2>${esc(name)}</h2>
-      <section><b>种类：</b><span>${kindName(node)}</span>
-      <b>大小：</b><span>${size}</span>
-      <b>位置：</b><span>${esc(displayPath(VFS.parentOf(path)))}</span>
-      <b>创建时间：</b><span>${formatDate(node.createdAt, true)}</span>
-      <b>修改时间：</b><span>${formatDate(node.modifiedAt, true)}</span></section>
-      <details open><summary>名称与扩展名</summary><input class="aqua-input" value="${esc(name)}"></details>
-      <details><summary>共享与权限</summary><p>roll：读与写<br>staff：只读<br>everyone：只读</p></details>`;
+      <h2>${esc(visibleName)}</h2>
+      <section><b>${t('app.fnd2.b48c0117c16d')}</b><span>${kindName(node)}</span>
+      <b>${t('app.fnd2.05370b091e0e')}</b><span>${size}</span>
+      <b>${t('app.fnd2.a1104f487b28')}</b><span>${esc(displayPath(VFS.parentOf(path)))}</span>
+      <b>${t('app.fnd2.b8b2d6f4cc7c')}</b><span>${formatDate(node.createdAt, true)}</span>
+      <b>${t('app.fnd2.e7b00dd4c157')}</b><span>${formatDate(node.modifiedAt, true)}</span></section>
+      <details open><summary>${t('app.fnd2.efba47c82610')}</summary><input class="aqua-input" value="${esc(name)}"></details>
+      <details><summary>${t('app.fnd2.c6c2ff428f9a')}</summary><p>${HOME_USER}：${t('app.fnd3.588457d12d45')}</p></details>`;
     const input = c.querySelector('input');
-    input.disabled = node.type === 'app' || node.type === 'kext';
+    input.disabled = node.type === 'app' || node.type === 'kext' || isProtectedSystemPath(path);
     input.addEventListener('change', () => {
       const renamed = VFS.rename(path, input.value);
-      if (!renamed) { input.value = name; System.alertBox('Finder', '无法使用这个名称。'); }
+      if (!renamed) { input.value = name; System.alertBox('Finder', t('ui.03e0eb35aeb7')); }
     });
     System.createWindow({
-      app:'finder', title:`${name} 简介`, width:390, height:500,
+      app:'finder', title:`${visibleName} ${t('app.fnd3.aa6e6431ab15')}`, width:390, height:500,
       content:c, bodyBg:'#ececec', noResize:true,
       autoFitContent:{ minHeight:360, maxHeight:560 },
     });
   }
 
-  function labelMenuFor(paths) {
+  function labelMenuFor(paths, readOnly = false) {
     const candidates = paths.filter((path) => VFS.get(path));
-    const setLabels = (label) => VFS.transaction(label ? '设定 Finder 标签' : '清除 Finder 标签', () =>
-      candidates.forEach((path) => VFS.updateNode(path, { label }, label ? '设定标签' : '清除标签')), { paths:candidates });
+    const setLabels = (label) => VFS.transaction(label ? t('ui.4c3d2665d81a') : t('ui.83f901a54baf'), () =>
+      candidates.forEach((path) => VFS.updateNode(path, { label }, label ? t('ui.14fac27068e5') : t('ui.270e7382a875'))), { paths:candidates });
     return {
-      label:'标签',
-      disabled:!candidates.length,
+      label:t('ui.ae0a7afecee1'),
+      disabled:readOnly || !candidates.length,
       submenu:[
         ...finderPrefs().labels.map((entry) => ({
           label:entry.name,
@@ -638,7 +654,7 @@
         })),
         { sep:true },
         {
-          label:'无',
+          label:t('ui.72077749f794'),
           checked:candidates.length > 0 && candidates.every((path) => !VFS.get(path)?.label),
           action:() => setLabels(null),
         },
@@ -651,94 +667,102 @@
     if (!node) return;
     if (!selectedPaths(win).includes(path)) setSelected(win, path);
     const paths = selectedPaths(win);
+    const readOnly = hasReadOnlySelection(win);
     const inTrash = win._path === System.TRASH || win._path.startsWith(System.TRASH + '/');
     const items = [
-      { label: paths.length > 1 ? `打开 ${paths.length} 个项目` : '打开', action: () => paths.forEach((p) => openItem(win, p)) },
-      { label: '快速查看', shortcut: 'Space', action: () => Leopard.quickLook(selectedPath(win)) },
+      { label: paths.length > 1 ? `${t('app.fnd3.fa38fa8553a0')} ${paths.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}` : t('ui.65fc81e16119'), action: () => paths.forEach((p) => openItem(win, p)) },
+      { label: t('ui.9e61629d2319'), shortcut: 'Space', action: () => Leopard.quickLook(selectedPath(win)) },
       { sep: true },
-      { label: paths.length > 1 ? `显示 ${paths.length} 项简介` : '显示简介', shortcut: '⌘I', action: () => paths.forEach(getInfo) },
+      { label: paths.length > 1 ? `${t('app.fnd3.8700d32d489b')} ${paths.length} ${t('app.fnd3.6e76cc0b2e01')}` : t('ui.d3eda18f01f6'), shortcut: '⌘I', action: () => paths.forEach(getInfo) },
     ];
     if (paths.every((p) => System.canDownloadVfsFile(p))) {
-      items.push({ label: paths.length > 1 ? '下载到本地…' : '下载到本地…', action: () => paths.forEach(System.downloadVfsFile) });
+      items.push({ label: paths.length > 1 ? t('ui.6584b4c39ba4') : t('ui.6584b4c39ba4'), action: () => paths.forEach(System.downloadVfsFile) });
     }
-    if (paths.length === 1 && node.type !== 'app') {
+    if (!readOnly && paths.length === 1 && node.type !== 'app') {
       items.push(
-        { label: '重新命名…', action: () => renameSelection(win) },
-        { label: '制作替身', action: () => makeAliases(win) },
-        { label: '复制', shortcut: '⌘D', action: () => duplicateSelection(win) },
+        { label: t('ui.e7b016c87fc7'), action: () => renameSelection(win) },
+        { label: t('ui.135c2ef2d8f3'), action: () => makeAliases(win) },
+        { label: t('ui.4edd1d00875d'), shortcut: '⌘D', action: () => duplicateSelection(win) },
       );
     }
-    if (inTrash) {
+    if (!readOnly && inTrash) {
       items.push({ sep: true },
-        { label: '放回原处', action: () => paths.forEach(restoreItem) },
-        { label: '立即删除…', action: () => permanentlyDeleteSelection(win) });
-    } else if (paths.every((p) => ['file','dir'].includes(VFS.get(p)?.type))) {
-      items.push({ sep: true }, { label: '移到废纸篓', shortcut: '⌘⌫', action: () => trashSelection(win) });
+        { label: t('ui.09fb84c246bf'), action: () => paths.forEach(restoreItem) },
+        { label: t('ui.369e8a4499d4'), action: () => permanentlyDeleteSelection(win) });
+    } else if (!readOnly && paths.every((p) => ['file','dir'].includes(VFS.get(p)?.type))) {
+      items.push({ sep: true }, { label: t('ui.e25762f172c1'), shortcut: '⌘⌫', action: () => trashSelection(win) });
     }
-    items.push({ sep:true }, labelMenuFor(paths));
+    items.push({ sep:true }, labelMenuFor(paths, readOnly));
     System.contextMenu(event, items);
   }
 
   function fileRows(win) {
     const query = win._finderQuery.trim().toLowerCase();
-    let paths;
+    let rows;
     if (win._smartSearch) {
       const prefs = finderPrefs();
       const scope = win._smartMode === 'query'
         ? (prefs.searchScope === 'current' ? win._searchBase || win._path
-          : prefs.searchScope === 'previous' ? win._previousSearchRoot || win._searchBase || '/用户/roll'
+          : prefs.searchScope === 'previous' ? win._previousSearchRoot || win._searchBase || paths.home
           : '/')
-        : '/用户/roll';
+        : paths.home;
       win._previousSearchRoot = scope;
-      paths = VFS.walk(scope).filter((p) => p !== scope && !p.includes('/.废纸篓')
+      rows = VFS.walk(scope).filter((p) => p !== scope && !p.includes('/.废纸篓')
         && !VFS.baseName(p).startsWith('.') && !VFS.get(p)?.hidden);
       if (win._smartMode === 'today') {
         const start = new Date();
         start.setHours(0, 0, 0, 0);
-        paths = paths.filter((path) => (VFS.get(path)?.modifiedAt || 0) >= start.getTime());
+        rows = rows.filter((path) => (VFS.get(path)?.modifiedAt || 0) >= start.getTime());
       } else if (win._smartMode === 'yesterday') {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
         const yesterday = new Date(today);
         yesterday.setDate(yesterday.getDate() - 1);
-        paths = paths.filter((path) => {
+        rows = rows.filter((path) => {
           const modified = VFS.get(path)?.modifiedAt || 0;
           return modified >= yesterday.getTime() && modified < today.getTime();
         });
       } else if (win._smartMode === 'week') {
         const threshold = Date.now() - 7 * 24 * 60 * 60 * 1000;
-        paths = paths.filter((path) => (VFS.get(path)?.modifiedAt || 0) >= threshold);
+        rows = rows.filter((path) => (VFS.get(path)?.modifiedAt || 0) >= threshold);
       } else if (win._smartMode === 'images') {
-        paths = paths.filter((path) => VFS.get(path)?.type === 'file' && isImageNode(path));
+        rows = rows.filter((path) => VFS.get(path)?.type === 'file' && isImageNode(path));
       } else if (win._smartMode === 'movies') {
-        paths = paths.filter((path) => VFS.get(path)?.type === 'file' && isMovieNode(path));
+        rows = rows.filter((path) => VFS.get(path)?.type === 'file' && isMovieNode(path));
       } else if (win._smartMode === 'documents' || win._smartMode === 'all') {
-        paths = paths.filter((path) => VFS.get(path)?.type === 'file'
+        rows = rows.filter((path) => VFS.get(path)?.type === 'file'
           && !isImageNode(path) && !isMovieNode(path)
           && !String(VFS.get(path)?.mime || '').startsWith('audio/'));
       }
     } else {
-      paths = (VFS.list(win._path) || [])
+      rows = (VFS.list(win._path) || [])
         .filter((name) => !name.startsWith('.') && !VFS.get(VFS.normalize(`${win._path}/${name}`))?.hidden)
         .map((name) => VFS.normalize(win._path + '/' + name));
     }
-    if (query) paths = paths.filter((path) => {
+    rows = finderVisibleChildren(win._smartSearch ? '' : win._path, rows, (path) => VFS.get(path));
+    if (query) rows = rows.filter((path) => {
       const node = VFS.get(path);
-      return VFS.baseName(path).toLowerCase().includes(query)
+      return displayName(path).toLowerCase().includes(query)
+        || VFS.baseName(path).toLowerCase().includes(query)
         || (node?.type === 'file' && String(node.content || '').toLowerCase().includes(query));
     });
     const sort = win._sort || 'name';
-    return paths.sort((a,b) => {
+    return rows.sort((a,b) => {
       const an = VFS.get(a), bn = VFS.get(b);
-      if (sort === 'kind') return String(an?.type).localeCompare(String(bn?.type)) || VFS.baseName(a).localeCompare(VFS.baseName(b),'zh-CN');
+      if (sort === 'kind') return String(an?.type).localeCompare(String(bn?.type)) || displayName(a).localeCompare(displayName(b));
       if (sort === 'size') return VFS.sizeOf(b) - VFS.sizeOf(a);
-      return VFS.baseName(a).localeCompare(VFS.baseName(b), 'zh-CN');
+      return displayName(a).localeCompare(displayName(b));
     });
   }
 
   function bindItem(win, item, path) {
     item.dataset.path = path;
     const node = VFS.get(path);
+    const virtualAlias = isHomeApplicationsAlias(win, path);
+    if (virtualAlias) {
+      item.dataset.virtualAlias = 'applications';
+      item.setAttribute('aria-roledescription', t('finder.virtualAlias'));
+    }
     if (node?.type === 'dir') item.dataset.dir = '1';
     if (node?.label) item.dataset.label = node.label;
     item.addEventListener('click', (e) => {
@@ -752,8 +776,9 @@
       if (e.button !== 0) return;
       if (e.shiftKey || e.metaKey || e.ctrlKey) return;
       if (!selectedPaths(win).includes(path)) setSelected(win, path, item);
+      if (virtualAlias || isProtectedSystemPath(path)) return;
       const paths = selectedPaths(win);
-      System.startItemDrag(e, path, nodeIcon(path), paths.length > 1 ? `${paths.length} 个项目` : VFS.baseName(path), paths);
+      System.startItemDrag(e, path, nodeIcon(path), paths.length > 1 ? `${paths.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}` : displayName(path), paths);
     });
     item.addEventListener('contextmenu', (e) => {
       e.preventDefault(); e.stopPropagation();
@@ -770,7 +795,7 @@
       const item = el('div', 'f-icon');
       const iconMarkup = options.showIconPreview === false && isImageNode(path, node) ? ICONS.textfile : nodeIcon(path);
       const itemInfo = node?.type === 'dir'
-        ? `${(VFS.list(path) || []).length} 个项目`
+        ? `${(VFS.list(path) || []).length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}`
         : formatBytes(VFS.sizeOf(path));
       item.innerHTML = `<div class="fi-img">${iconMarkup}</div><div class="fi-copy"><div class="fi-label">${esc(displayName(path))}</div><div class="fi-info">${esc(itemInfo)}</div></div>`;
       bindItem(win, item, path);
@@ -781,7 +806,7 @@
 
   function renderList(win, paths) {
     const table = el('div', 'finder-list');
-    table.innerHTML = '<div class="finder-list-head"><span>名称</span><span>修改日期</span><span>大小</span><span>种类</span></div>';
+    table.innerHTML = `<div class="finder-list-head"><span>${t('app.finder.2388e20815')}</span><span>${t('app.fnd2.d340a7423081')}</span><span>${t('app.finder.99a28bf48f')}</span><span>${t('app.finder.60b3e31e64')}</span></div>`;
     paths.forEach((path) => {
       const node = VFS.get(path);
       const row = el('div', 'finder-list-row');
@@ -806,21 +831,22 @@
         ? esc(String(node.content || '').slice(0, 700))
         : `${kindName(node)}<br>${formatBytes(VFS.sizeOf(path))}<br>${formatDate(node?.modifiedAt, true)}`;
       preview.dataset.previewPath = path;
-      preview.innerHTML = `<div>${nodeIcon(path)}</div><h3>${esc(VFS.baseName(path))}</h3><p>${body}</p>`;
+      preview.innerHTML = `<div>${nodeIcon(path)}</div><h3>${esc(displayName(path))}</h3><p>${body}</p>`;
       columns.appendChild(preview);
     };
     const appendColumn = (parentPath, depth) => {
       removeAfter(depth - 1);
       const column = el('div', 'finder-column');
       column.dataset.parentPath = parentPath;
-      const childPaths = (depth === 0 && win._smartSearch ? paths.slice() : (VFS.list(parentPath) || [])
+      const rawChildPaths = depth === 0 && win._smartSearch ? paths.slice() : (VFS.list(parentPath) || [])
         .filter((name) => !name.startsWith('.'))
-        .map((name) => VFS.normalize(`${parentPath}/${name}`)))
+        .map((name) => VFS.normalize(`${parentPath}/${name}`));
+      const childPaths = finderVisibleChildren(depth === 0 && win._smartSearch ? '' : parentPath, rawChildPaths, (path) => VFS.get(path))
         .sort((a, b) => {
           const ad = VFS.isDir(a), bd = VFS.isDir(b);
-          return ad === bd ? VFS.baseName(a).localeCompare(VFS.baseName(b), 'zh-CN') : ad ? -1 : 1;
+          return ad === bd ? displayName(a).localeCompare(displayName(b)) : ad ? -1 : 1;
         });
-      if (!childPaths.length) column.appendChild(el('p', 'column-empty', '此文件夹为空'));
+      if (!childPaths.length) column.appendChild(el('p', 'column-empty', t('ui.6d564b027a4c')));
       childPaths.forEach((path) => {
         const node = VFS.get(path);
         const item = el('div', 'column-item');
@@ -881,7 +907,7 @@
     };
     visible.forEach((path) => {
       const row = el('div','cover-strip-item');
-      row.innerHTML = `${nodeIcon(path)}<b>${esc(displayName(path))}</b><span>${VFS.get(path)?.type === 'dir' ? '文件夹' : '文稿'}</span>`;
+      row.innerHTML = `${nodeIcon(path)}<b>${esc(displayName(path))}</b><span>${VFS.get(path)?.type === 'dir' ? t('ui.46ecac29102a') : t('ui.908a913cf12c')}</span>`;
       bindItem(win,row,path);
       row.addEventListener('click',()=>selectCover(path));
       strip.appendChild(row);
@@ -895,12 +921,12 @@
     if (!win._inspector) return;
     const path = selectedPath(win);
     if (!path) {
-      win._inspector.innerHTML = '<p>选择一个项目以查看信息。</p>';
+      win._inspector.innerHTML = `<p>${t('app.fnd.2b6f1af0f0af')}</p>`;
       return;
     }
     const node = VFS.get(path);
-    win._inspector.innerHTML = `<div>${nodeIcon(path)}</div><b>${esc(VFS.baseName(path))}</b><small>${node?.type === 'dir'
-      ? `${(VFS.list(path)||[]).length} 个项目，${formatBytes(VFS.sizeOf(path))}`
+    win._inspector.innerHTML = `<div>${nodeIcon(path)}</div><b>${esc(displayName(path))}</b><small>${node?.type === 'dir'
+      ? `${(VFS.list(path)||[]).length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}，${formatBytes(VFS.sizeOf(path))}`
       : `${kindName(node)}，${formatBytes(VFS.sizeOf(path))}`}</small>`;
   }
 
@@ -935,22 +961,23 @@
     else if (win._view === 'cover') renderCoverFlow(win, paths);
     else renderIcons(win, paths);
     const smartTitles = {
-      today:'今天', yesterday:'昨天', week:'过去一周', images:'所有图像',
-      movies:'所有影片', documents:'所有文稿', all:'所有文稿',
+      today:t('ui.17e83cc25e22'), yesterday:t('ui.59c4fcb09e27'), week:t('ui.60a6ac35d616'), images:t('ui.dd589b5d4788'),
+      movies:t('ui.457a03b99cd3'), documents:t('ui.723b7d1e656c'), all:t('ui.723b7d1e656c'),
     };
-    const smartTitle = win._smartMode === 'query' ? `搜索“${win._finderQuery}”`
-      : smartTitles[win._smartMode] || '搜索';
+    const smartTitle = win._smartMode === 'query' ? `${t('app.fnd3.6d201c3b9797')}“${win._finderQuery}”`
+      : smartTitles[win._smartMode] || t('ui.f04090805c6e');
     win._pathLabel.textContent = win._smartSearch ? smartTitle : displayPath(win._path);
-    win._title.textContent = win._smartSearch ? smartTitle : (win._path === '/' ? 'Macintosh HD' : VFS.baseName(win._path));
-    win._status.textContent = `${paths.length} 项`;
+    win._title.textContent = win._smartSearch ? smartTitle : displayName(win._path);
+    win._status.textContent = t('app.fnd.nItems', { n: paths.length });
     win._backBtn.disabled = !win._back.length;
     win._forwardBtn.disabled = !win._forward.length;
     win._upBtn.disabled = win._path === '/';
     win.querySelectorAll('.finder-view-btn').forEach((b)=>b.classList.toggle('active', b.dataset.view === win._view));
+    const activeSidebarRoute = win._sidebarRoute || finderSidebarRoute(win._path);
     win._side.querySelectorAll('.fs-item').forEach((item) => {
-      const selected = win._sidebarRoute
-        ? item.dataset.route === win._sidebarRoute
-        : !win._smartSearch && item.dataset.path === win._path;
+      const selected = win._smartSearch
+        ? !!win._sidebarRoute && item.dataset.route === win._sidebarRoute
+        : item.dataset.route === activeSidebarRoute;
       item.classList.toggle('sel', selected);
     });
     refreshSelection(win);
@@ -959,7 +986,7 @@
   function historyAction(win, direction) {
     const entry = direction === 'redo' ? VFS.redo() : VFS.undo();
     if (!entry) {
-      if (win?._status) win._status.textContent = direction === 'redo' ? '没有可重做的文件操作。' : '没有可撤销的文件操作。';
+      if (win?._status) win._status.textContent = direction === 'redo' ? t('ui.688fb611de33') : t('ui.17d56af06f0b');
       return;
     }
     const candidates = direction === 'redo' ? [...entry.paths].reverse() : entry.paths;
@@ -969,7 +996,7 @@
       win._finderSelected = path;
       win._finderAnchor = path;
     }
-    if (win?._status) win._status.textContent = `${direction === 'redo' ? '已重做' : '已撤销'}：${entry.label}`;
+    if (win?._status) win._status.textContent = `${direction === 'redo' ? t('ui.dcddfe11d3d5') : t('ui.61063ba81b3c')}：${entry.label}`;
   }
 
   function scrollSelectionIntoView(win) {
@@ -1052,7 +1079,7 @@
       : fileRows(win);
     const start = Math.max(0, paths.indexOf(selectedPath(win)) + 1);
     const ordered = paths.slice(start).concat(paths.slice(0, start));
-    const match = ordered.find((path) => VFS.baseName(path).toLocaleLowerCase('zh-CN').startsWith(win._typeSelectBuffer));
+    const match = ordered.find((path) => displayName(path).toLocaleLowerCase().startsWith(win._typeSelectBuffer));
     if (match) {
       setSelected(win, match);
       scrollSelectionIntoView(win);
@@ -1153,35 +1180,35 @@
     const prefs = finderPrefs().sidebar;
     const servers = connectedServers();
     const groups = [
-      ['设备', [
-        { pref:'computer', route:'device:computer', path:'/', label:'roll 的 MacBook Pro', icon:ICONS.hd },
+      [t('ui.01f2c16cda65'), [
+        { pref:'computer', route:'device:computer', path:'/', label:t('ui.fc86807a083f'), icon:ICONS.hd },
         { pref:'hardDisks', route:'device:hard-disk', path:'/', label:'Macintosh HD', icon:ICONS.hd },
       ]],
-      ['共享', [
-        { pref:'connectedServers', route:'shared:roll', path:'/用户/roll/公共', label:'roll 的 Mac', icon:ICONS.folder },
-        { pref:'bonjour', route:'shared:bonjour', path:'/用户/roll/公共', label:'Bonjour', icon:ICONS.folder },
+      [t('ui.9a236964e80d'), [
+        { pref:'connectedServers', route:`shared:${HOME_USER}`, path:paths.public, label:t('ui.86930b5ff3af'), icon:ICONS.folder },
+        { pref:'bonjour', route:'shared:bonjour', path:paths.public, label:'Bonjour', icon:ICONS.folder },
         ...servers.map((server) => ({
           pref:'connectedServers', route:`server:${server.url}`, path:server.path,
           label:server.name, icon:ICONS.folder, server,
         })),
       ]],
-      ['位置', [
-        { pref:'home', route:'place:home', path:'/用户/roll', label:'roll', icon:ICONS.folder },
-        { pref:'desktop', route:'place:desktop', path:'/用户/roll/桌面', label:'桌面', icon:ICONS.folder },
-        { pref:'applications', route:'place:applications', path:'/应用程序', label:'应用程序', icon:ICONS.folder },
-        { pref:'documents', route:'place:documents', path:'/用户/roll/文稿', label:'文稿', icon:ICONS.folder },
-        { pref:'downloads', route:'place:downloads', path:'/用户/roll/下载', label:'下载', icon:ICONS.folder },
-        { pref:'movies', route:'place:movies', path:'/用户/roll/影片', label:'影片', icon:ICONS.folder },
-        { pref:'pictures', route:'place:pictures', path:'/用户/roll/图片', label:'图片', icon:ICONS.folder },
-        { pref:'music', route:'place:music', path:'/用户/roll/音乐', label:'音乐', icon:ICONS.folder },
+      [t('ui.88c34452cc46'), [
+        { pref:'home', route:'place:home', path:paths.home, label:HOME_USER, icon:ICONS.folder },
+        { pref:'desktop', route:'place:desktop', path:paths.desktop, label:t('ui.65fdeb927bb9'), icon:ICONS.folder },
+        { pref:'applications', route:'place:applications', path:'/应用程序', label:t('ui.8a443802664a'), icon:ICONS.folder },
+        { pref:'documents', route:'place:documents', path:paths.documents, label:t('ui.908a913cf12c'), icon:ICONS.folder },
+        { pref:'downloads', route:'place:downloads', path:paths.downloads, label:t('ui.2b9d013177da'), icon:ICONS.folder },
+        { pref:'movies', route:'place:movies', path:paths.movies, label:t('ui.8d85cec2707c'), icon:ICONS.folder },
+        { pref:'pictures', route:'place:pictures', path:paths.pictures, label:t('ui.be8da62ea113'), icon:ICONS.folder },
+        { pref:'music', route:'place:music', path:paths.music, label:t('ui.afb3c40c3929'), icon:ICONS.folder },
       ]],
-      ['搜索条件', [
-        { pref:'today', route:'smart:today', smart:'today', label:'今天', icon:ICONS.textfile },
-        { pref:'yesterday', route:'smart:yesterday', smart:'yesterday', label:'昨天', icon:ICONS.textfile },
-        { pref:'pastWeek', route:'smart:week', smart:'week', label:'过去一周', icon:ICONS.textfile },
-        { pref:'allImages', route:'smart:images', smart:'images', label:'所有图像', icon:ICONS.textfile },
-        { pref:'allMovies', route:'smart:movies', smart:'movies', label:'所有影片', icon:ICONS.textfile },
-        { pref:'allDocuments', route:'smart:documents', smart:'documents', label:'所有文稿', icon:ICONS.textfile },
+      [t('ui.e6400c29b354'), [
+        { pref:'today', route:'smart:today', smart:'today', label:t('ui.17e83cc25e22'), icon:ICONS.textfile },
+        { pref:'yesterday', route:'smart:yesterday', smart:'yesterday', label:t('ui.59c4fcb09e27'), icon:ICONS.textfile },
+        { pref:'pastWeek', route:'smart:week', smart:'week', label:t('ui.60a6ac35d616'), icon:ICONS.textfile },
+        { pref:'allImages', route:'smart:images', smart:'images', label:t('ui.dd589b5d4788'), icon:ICONS.textfile },
+        { pref:'allMovies', route:'smart:movies', smart:'movies', label:t('ui.457a03b99cd3'), icon:ICONS.textfile },
+        { pref:'allDocuments', route:'smart:documents', smart:'documents', label:t('ui.723b7d1e656c'), icon:ICONS.textfile },
       ]],
     ];
     groups.forEach(([title,items]) => {
@@ -1212,12 +1239,12 @@
           row.addEventListener('contextmenu', (event) => {
             event.preventDefault();
             System.contextMenu(event, [
-              { label:'打开', action:() => openPath(win, entry.path, true, entry.route) },
-              { label:'显示简介', action:() => getInfo(entry.path) },
+              { label:t('ui.65fc81e16119'), action:() => openPath(win, entry.path, true, entry.route) },
+              { label:t('ui.d3eda18f01f6'), action:() => getInfo(entry.path) },
               { sep:true },
-              { label:'断开连接', action:() => {
+              { label:t('ui.eb7246121725'), action:() => {
                 saveConnectedServers(connectedServers().filter((server) => server.url !== entry.server.url));
-                if (win._path === entry.path || win._path.startsWith(`${entry.path}/`)) openPath(win, '/用户/roll/公共');
+                if (win._path === entry.path || win._path.startsWith(`${entry.path}/`)) openPath(win, paths.public);
               }},
             ]);
           });
@@ -1228,35 +1255,71 @@
     return side;
   }
 
+  function rebuildSidebar(win) {
+    if (!win?.isConnected || !win._side) return;
+    const replacement = makeSidebar(win);
+    win._side.replaceWith(replacement);
+    win._side = replacement;
+  }
+
+  function refreshFinderChrome(win) {
+    if (!win?.isConnected) return;
+    const buttonLabels = {
+      icons:t('ui.1f24c1e5aafa'), list:t('ui.d46f82fdf073'),
+      columns:t('ui.d195fd0f1621'), cover:t('ui.6db37ba36a40'),
+    };
+    const setButtonLabel = (button, label) => {
+      if (!button) return;
+      button.title = label;
+      button.setAttribute('aria-label', label);
+    };
+    setButtonLabel(win._backBtn, t('ui.4cf4c11a1b0b'));
+    setButtonLabel(win._forwardBtn, t('ui.320ffeefca2c'));
+    setButtonLabel(win._upBtn, t('ui.6e70574648d1'));
+    win.querySelectorAll('.finder-view-btn[data-view]').forEach((button) => {
+      setButtonLabel(button, buttonLabels[button.dataset.view] || button.dataset.view);
+    });
+    const quickLabel = t('app.fnd2.6c9b03aacc6e');
+    const quickText = win._quickBtn?.querySelector('span');
+    if (quickText) quickText.textContent = quickLabel;
+    setButtonLabel(win._quickBtn, quickLabel);
+    setButtonLabel(win._actionBtn, t('ui.f3ea6d345e2a'));
+    if (win._search) win._search.placeholder = t('ui.f04090805c6e');
+    if (win._main) win._main.setAttribute('aria-label', t('ui.22b25dfa8ad7'));
+    rebuildSidebar(win);
+    render(win);
+  }
+
   function open(arg) {
     const preferredPath = finderPrefs().newWindowPath;
     const startPath = arg?.path && VFS.isDir(arg.path) ? arg.path
-      : VFS.isDir(preferredPath) ? preferredPath : '/用户/roll';
+      : VFS.isDir(preferredPath) ? preferredPath : paths.home;
     const layout = el('div','finder-layout leopard-finder-layout');
     const toolbar = el('div','finder-toolbar');
     const nav = el('div','finder-toolbar-group');
     const back = el('button','finder-toolbar-btn',toolGlyph('back'));
     const forward = el('button','finder-toolbar-btn',toolGlyph('forward'));
     const up = el('button','finder-toolbar-btn',toolGlyph('up'));
-    back.title='后退'; forward.title='前进'; up.title='上层文件夹';
+    back.title=t('ui.4cf4c11a1b0b'); forward.title=t('ui.320ffeefca2c'); up.title=t('ui.6e70574648d1');
+    back.setAttribute('aria-label',back.title); forward.setAttribute('aria-label',forward.title); up.setAttribute('aria-label',up.title);
     nav.append(back,forward,up);
     const views = el('div','finder-toolbar-group finder-view-group');
-    [['icons','图标'],['list','列表'],['columns','分栏'],['cover','Cover Flow']].forEach(([id,label])=>{
+    [['icons',t('ui.1f24c1e5aafa')],['list',t('ui.d46f82fdf073')],['columns',t('ui.d195fd0f1621')],['cover',t('ui.6db37ba36a40')]].forEach(([id,label])=>{
       const b=el('button','finder-toolbar-btn finder-view-btn',toolGlyph(id));
       b.dataset.view=id; b.title=label; b.setAttribute('aria-label',label); views.appendChild(b);
     });
-    const quick = el('button','finder-toolbar-btn finder-quick-btn',`${toolGlyph('quick')}<span>快速查看</span>`);
+    const quick = el('button','finder-toolbar-btn finder-quick-btn',`${toolGlyph('quick')}<span>${t('app.fnd2.6c9b03aacc6e')}</span>`);
     const action = el('button','finder-toolbar-btn finder-action-btn',toolGlyph('action'));
-    action.title='操作'; action.setAttribute('aria-label','操作');
+    action.title=t('ui.f3ea6d345e2a'); action.setAttribute('aria-label',action.title);
     const pathLabel = el('span','finder-path');
     const search = el('input','aqua-input aqua-search finder-search');
-    search.placeholder='搜索';
+    search.placeholder=t('ui.f04090805c6e');
     toolbar.append(nav,views,quick,action,pathLabel,search);
     const side = makeSidebar({});
     const main = el('div','finder-main');
     main.tabIndex = 0;
     main.setAttribute('role', 'listbox');
-    main.setAttribute('aria-label', 'Finder 项目');
+    main.setAttribute('aria-label', t('ui.22b25dfa8ad7'));
     const inspector = el('aside','finder-inspector');
     const content = el('div','finder-content');
     content.append(main,inspector);
@@ -1275,9 +1338,10 @@
     win._side=layout.querySelector('.finder-side');
     win._main=main; win._inspector=inspector; win._pathLabel=pathLabel; win._search=search;
     win._backBtn=back; win._forwardBtn=forward; win._upBtn=up;
+    win._quickBtn=quick; win._actionBtn=action;
     win._path=startPath; win._back=[]; win._forward=[]; win._finderQuery='';
     win._finderSelection=new Set(); win._finderSelected=null; win._finderAnchor=null;
-    win._smartSearch=false; win._smartMode=''; win._sidebarRoute=''; win._searchBase=startPath;
+    win._smartSearch=false; win._smartMode=''; win._sidebarRoute=finderSidebarRoute(startPath); win._searchBase=startPath;
     win._view=localStorage.getItem(VIEW_KEY)||'icons'; win._sort='name';
     win._typeSelectBuffer=''; win._renaming=null;
     openWindows.add(win);
@@ -1289,28 +1353,29 @@
       const b=e.target.closest('[data-view]');if(!b)return;
       win._view=b.dataset.view;localStorage.setItem(VIEW_KEY,win._view);render(win);
     });
-    quick.addEventListener('click',()=>selectedPath(win)?Leopard.quickLook(selectedPath(win)):System.alertBox('快速查看','请先选择一个项目。'));
+    quick.addEventListener('click',()=>selectedPath(win)?Leopard.quickLook(selectedPath(win)):System.alertBox(t('ui.9e61629d2319'),t('ui.977ef0cbe54b')));
     action.addEventListener('click',(e)=>{
       const p=selectedPath(win);
+      const readOnly = hasReadOnlySelection(win);
       const inTrash = win._path === System.TRASH || win._path.startsWith(`${System.TRASH}/`);
       System.contextMenu(e,p?[
-        {label:selectedPaths(win).length > 1 ? `打开 ${selectedPaths(win).length} 个项目` : '打开',action:()=>selectedPaths(win).forEach((path)=>openItem(win,path))},
-        {label:'快速查看',action:()=>Leopard.quickLook(p)},
-        {label:'显示简介',action:()=>selectedPaths(win).forEach(getInfo)},
-        ...(selectedPaths(win).every(System.canDownloadVfsFile)?[{label:'下载到本地…',action:()=>selectedPaths(win).forEach(System.downloadVfsFile)}]:[]),
+        {label:selectedPaths(win).length > 1 ? `${t('app.fnd3.fa38fa8553a0')} ${selectedPaths(win).length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}` : t('ui.65fc81e16119'),action:()=>selectedPaths(win).forEach((path)=>openItem(win,path))},
+        {label:t('ui.9e61629d2319'),action:()=>Leopard.quickLook(p)},
+        {label:t('ui.d3eda18f01f6'),action:()=>selectedPaths(win).forEach(getInfo)},
+        ...(selectedPaths(win).every(System.canDownloadVfsFile)?[{label:t('ui.6584b4c39ba4'),action:()=>selectedPaths(win).forEach(System.downloadVfsFile)}]:[]),
         {sep:true},
-        {label:'重新命名…',disabled:selectedPaths(win).length!==1,action:()=>renameSelection(win)},
+        {label:t('ui.e7b016c87fc7'),disabled:readOnly||selectedPaths(win).length!==1,action:()=>renameSelection(win)},
         ...(inTrash ? [
-          {label:'放回原处',action:()=>selectedPaths(win).forEach(restoreItem)},
-          {label:'立即删除…',action:()=>permanentlyDeleteSelection(win)},
-        ] : [{label:'移到废纸篓',action:()=>trashSelection(win)}]),
-        labelMenuFor(selectedPaths(win)),
-        {sep:true},{label:'新建文件夹',action:()=>createFolder(win)},
+          {label:t('ui.09fb84c246bf'),disabled:readOnly,action:()=>selectedPaths(win).forEach(restoreItem)},
+          {label:t('ui.369e8a4499d4'),disabled:readOnly,action:()=>permanentlyDeleteSelection(win)},
+        ] : [{label:t('ui.e25762f172c1'),disabled:readOnly,action:()=>trashSelection(win)}]),
+        labelMenuFor(selectedPaths(win), readOnly),
+        {sep:true},{label:t('ui.95cf3cd4212b'),action:()=>createFolder(win)},
       ]:[
-        {label:'新建文件夹',action:()=>createFolder(win)},
-        {label:'排列方式：名称',action:()=>{win._sort='name';render(win);}},
-        {label:'排列方式：种类',action:()=>{win._sort='kind';render(win);}},
-        {label:'排列方式：大小',action:()=>{win._sort='size';render(win);}},
+        {label:t('ui.95cf3cd4212b'),action:()=>createFolder(win)},
+        {label:t('ui.7d86ca5c4c46'),action:()=>{win._sort='name';render(win);}},
+        {label:t('ui.d769f3ad266c'),action:()=>{win._sort='kind';render(win);}},
+        {label:t('ui.6b28e5e481af'),action:()=>{win._sort='size';render(win);}},
       ]);
     });
     search.addEventListener('input',()=>{
@@ -1332,9 +1397,9 @@
     main.addEventListener('contextmenu',(e)=>{
       if(e.target.closest('[data-path]'))return;e.preventDefault();
       System.contextMenu(e,[
-        {label:'新建文件夹',action:()=>createFolder(win)},
-        {label:'粘贴项目',disabled:!clipboard.paths.length,action:()=>pasteInto(win)},
-        {label:'显示查看选项',action:()=>showViewOptions(win)},
+        {label:t('ui.95cf3cd4212b'),action:()=>createFolder(win)},
+        {label:t('ui.f42b2fc96676'),disabled:!clipboard.paths.length,action:()=>pasteInto(win)},
+        {label:t('ui.72aa62313557'),action:()=>showViewOptions(win)},
       ]);
     });
     win.addEventListener('leopard-command',(event)=>{
@@ -1357,9 +1422,9 @@
         'preferences':()=>showPreferences(),
         'go-to-folder':()=>goToFolder(win),
         'connect-server':()=>connectToServer(win),
-        'go-desktop':()=>openPath(win,'/用户/roll/桌面'),
-        'go-documents':()=>openPath(win,'/用户/roll/文稿'),
-        'go-downloads':()=>openPath(win,'/用户/roll/下载'),
+        'go-desktop':()=>openPath(win,paths.desktop),
+        'go-documents':()=>openPath(win,paths.documents),
+        'go-downloads':()=>openPath(win,paths.downloads),
         'view-icons':()=>{win._view='icons';localStorage.setItem(VIEW_KEY,'icons');render(win);},
         'view-list':()=>{win._view='list';localStorage.setItem(VIEW_KEY,'list');render(win);},
         'view-columns':()=>{win._view='columns';localStorage.setItem(VIEW_KEY,'columns');render(win);},
@@ -1384,10 +1449,10 @@
     const content = el('div', 'spp-pane finder-preferences');
     const tabs = el('nav', 'finder-pref-tabs');
     const tabDefs = [
-      ['general','通用','<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.3"/>'],
-      ['labels','标签','<path d="M4 6h9l7 7-7 7-9-9z"/><circle cx="9" cy="10" r="1.7" fill="#fff"/>'],
-      ['sidebar','边栏','<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M10 4v16M6.5 8h1M6.5 12h1M6.5 16h1" stroke="#fff" stroke-width="1.2"/>'],
-      ['advanced','高级','<circle cx="12" cy="12" r="4"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="#fff" stroke-width="1.7"/>'],
+      ['general',t('ui.1a0fdce8f88f'),'<rect x="5" y="4" width="14" height="16" rx="2"/><path d="M8 8h8M8 12h8M8 16h5" stroke="#fff" stroke-width="1.3"/>'],
+      ['labels',t('ui.ae0a7afecee1'),'<path d="M4 6h9l7 7-7 7-9-9z"/><circle cx="9" cy="10" r="1.7" fill="#fff"/>'],
+      ['sidebar',t('app.fnd.e1fb821ef258'),'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="M10 4v16M6.5 8h1M6.5 12h1M6.5 16h1" stroke="#fff" stroke-width="1.2"/>'],
+      ['advanced',t('ui.c009d0ab82f9'),'<circle cx="12" cy="12" r="4"/><path d="M12 3v3m0 12v3M3 12h3m12 0h3M5.6 5.6l2.1 2.1m8.6 8.6 2.1 2.1m0-12.8-2.1 2.1m-8.6 8.6-2.1 2.1" stroke="#fff" stroke-width="1.7"/>'],
     ];
     tabDefs.forEach(([id,label,paths]) => {
       const button = el('button','finder-pref-tab');
@@ -1402,35 +1467,35 @@
     const general = el('section', 'finder-pref-panel');
     general.dataset.prefPanel = 'general';
     general.innerHTML = `
-      <fieldset><legend>在桌面上显示这些项目：</legend>
+      <fieldset><legend>${t('app.fnd2.88c939e6411a')}</legend>
         <div class="finder-pref-grid">
-          <label><input type="checkbox" data-desktop="hardDisks"> 硬盘</label>
-          <label><input type="checkbox" data-desktop="externalDisks"> 外置磁盘</label>
-          <label><input type="checkbox" data-desktop="opticalDisks"> CD、DVD 和 iPod</label>
-          <label><input type="checkbox" data-desktop="connectedServers"> 已连接的服务器</label>
+          <label><input type="checkbox" data-desktop="hardDisks"> ${t('app.finder.54038b6908')}</label>
+          <label><input type="checkbox" data-desktop="externalDisks"> ${t('app.finder.eba6163458')}</label>
+          <label><input type="checkbox" data-desktop="opticalDisks"> ${t('app.finder.e6620fd5bb')}</label>
+          <label><input type="checkbox" data-desktop="connectedServers"> ${t('app.fnd2.853426d0798f')}</label>
         </div>
       </fieldset>
-      <fieldset><legend>新 Finder 窗口显示：</legend>
+      <fieldset><legend>${t('app.finder.485343812d')}</legend>
         <select class="aqua-select" data-pref-value="newWindowPath">
-          <option value="/用户/roll">roll</option>
-          <option value="/用户/roll/桌面">桌面</option>
-          <option value="/用户/roll/文稿">文稿</option>
-          <option value="/应用程序">应用程序</option>
+          <option value="${paths.home}">${HOME_USER}</option>
+          <option value="${paths.desktop}">${t('app.fnd2.ac681613098c')}</option>
+          <option value="${paths.documents}">${t('app.fnd2.2b286d542214')}</option>
+          <option value="/应用程序">${t('app.fnd2.eecb67fc4d8e')}</option>
           <option value="/">Macintosh HD</option>
         </select>
       </fieldset>
       <fieldset class="finder-pref-behavior">
-        <label><input type="checkbox" data-pref-value="openFoldersNewWindow"> 总是在新窗口中打开文件夹</label>
-        <label><input type="checkbox" data-pref-value="springLoaded"> 弹簧式打开文件夹和窗口</label>
+        <label><input type="checkbox" data-pref-value="openFoldersNewWindow"> ${t('app.finder.417a537a84')}</label>
+        <label><input type="checkbox" data-pref-value="springLoaded"> ${t('app.finder.fb80abe76c')}</label>
         <div class="finder-spring-delay">
-          <span>延迟：</span><small>短</small><input type="range" min="0.12" max="1.4" step="0.04" data-pref-value="springDelay"><small>长</small>
+          <span>${t('app.finder.c715ff59e6')}</span><small>${t('app.finder.5eb8801e40')}</small><input type="range" min="0.12" max="1.4" step="0.04" data-pref-value="springDelay"><small>${t('app.finder.48a309bd86')}</small>
         </div>
-        <p>拖移项目时将指针停在文件夹上即可打开它。按空格键可立即打开。</p>
+        <p>${t('app.fnd2.055d425295ee')}</p>
       </fieldset>`;
 
     const labels = el('section', 'finder-pref-panel finder-label-preferences');
     labels.dataset.prefPanel = 'labels';
-    labels.innerHTML = `<h3>标签</h3><p>为标签输入便于识别的名称。它们会出现在 Finder 的操作菜单中。</p>
+    labels.innerHTML = `<h3>${t('app.fnd2.05875e1ee55e')}</h3><p>${t('app.fnd2.d2df6fda72ec')}</p>
       <div class="finder-label-list">${prefs.labels.map((entry) => `
         <label><i data-label-color="${entry.id}"></i><input class="aqua-input" maxlength="40" data-label-name="${entry.id}" value="${esc(entry.name)}"></label>`).join('')}
       </div>`;
@@ -1438,10 +1503,10 @@
     const sidebar = el('section', 'finder-pref-panel finder-sidebar-preferences');
     sidebar.dataset.prefPanel = 'sidebar';
     const sideGroups = [
-      ['设备', [['computer','电脑'],['hardDisks','硬盘'],['externalDisks','外置磁盘'],['opticalDisks','CD、DVD 和 iPod']]],
-      ['共享', [['connectedServers','已连接的服务器'],['bonjour','Bonjour 电脑']]],
-      ['位置', [['home','个人文件夹'],['desktop','桌面'],['applications','应用程序'],['documents','文稿'],['downloads','下载'],['movies','影片'],['pictures','图片'],['music','音乐']]],
-      ['搜索条件', [['today','今天'],['yesterday','昨天'],['pastWeek','过去一周'],['allImages','所有图像'],['allMovies','所有影片'],['allDocuments','所有文稿']]],
+      [t('ui.01f2c16cda65'), [['computer',t('ui.ec87a4b86709')],['hardDisks',t('app.finder.54038b6908')],['externalDisks',t('app.finder.eba6163458')],['opticalDisks',t('ui.2592acda974f')]]],
+      [t('ui.9a236964e80d'), [['connectedServers',t('ui.215ff69c7c32')],['bonjour',t('ui.cbbd230382a7')]]],
+      [t('ui.88c34452cc46'), [['home',t('ui.080582978f76')],['desktop',t('ui.65fdeb927bb9')],['applications',t('ui.8a443802664a')],['documents',t('ui.908a913cf12c')],['downloads',t('ui.2b9d013177da')],['movies',t('ui.8d85cec2707c')],['pictures',t('ui.be8da62ea113')],['music',t('ui.afb3c40c3929')]]],
+      [t('ui.e6400c29b354'), [['today',t('ui.17e83cc25e22')],['yesterday',t('ui.59c4fcb09e27')],['pastWeek',t('ui.60a6ac35d616')],['allImages',t('ui.dd589b5d4788')],['allMovies',t('ui.457a03b99cd3')],['allDocuments',t('ui.723b7d1e656c')]]],
     ];
     sidebar.innerHTML = sideGroups.map(([title,items]) => `<fieldset><legend>${title}</legend><div class="finder-pref-grid">
       ${items.map(([id,label]) => `<label><input type="checkbox" data-sidebar="${id}"> ${label}</label>`).join('')}
@@ -1451,17 +1516,17 @@
     advanced.dataset.prefPanel = 'advanced';
     advanced.innerHTML = `
       <fieldset>
-        <label><input type="checkbox" data-pref-value="showAllExtensions"> 显示所有文件扩展名</label>
-        <label><input type="checkbox" data-pref-value="warnExtensionChange"> 更改扩展名之前显示警告</label>
-        <label><input type="checkbox" data-pref-value="warnEmptyTrash"> 清倒废纸篓之前显示警告</label>
+        <label><input type="checkbox" data-pref-value="showAllExtensions"> ${t('app.fnd2.637c6c9ff1a1')}</label>
+        <label><input type="checkbox" data-pref-value="warnExtensionChange"> ${t('app.fnd2.801792f6c060')}</label>
+        <label><input type="checkbox" data-pref-value="warnEmptyTrash"> ${t('app.fnd.warnEmpty')}</label>
       </fieldset>
-      <fieldset><legend>执行搜索时：</legend>
+      <fieldset><legend>${t('app.fnd2.1c92ceecdc6b')}</legend>
         <select class="aqua-select" data-pref-value="searchScope">
-          <option value="mac">搜索这台 Mac</option>
-          <option value="current">搜索当前文件夹</option>
-          <option value="previous">使用上一次搜索范围</option>
+          <option value="mac">${t('app.fnd2.1780c0f1f940')}</option>
+          <option value="current">${t('app.fnd2.a864d4e07ca1')}</option>
+          <option value="previous">${t('app.fnd2.b752f1b031f9')}</option>
         </select>
-        <p>此选项决定 Finder 工具栏搜索框的默认搜索范围。</p>
+        <p>${t('app.fnd2.1106291a1f94')}</p>
       </fieldset>`;
     panels.append(general,labels,sidebar,advanced);
     content.appendChild(panels);
@@ -1475,7 +1540,7 @@
       content.querySelectorAll('[data-pref-panel]').forEach((panel) => {
         panel.hidden = panel.dataset.prefPanel !== id;
       });
-      if (preferencesWindow) preferencesWindow._title.textContent = `Finder 偏好设置 — ${tabDefs.find((entry) => entry[0] === id)?.[1] || '通用'}`;
+      if (preferencesWindow) preferencesWindow._title.textContent = `Finder ${t('app.fnd3.32f1e5d5696e')} — ${tabDefs.find((entry) => entry[0] === id)?.[1] || t('ui.1a0fdce8f88f')}`;
       content.dispatchEvent(new CustomEvent('panel-layout-changed', { bubbles:true }));
     };
     tabs.addEventListener('click', (event) => {
@@ -1504,7 +1569,7 @@
         System.updateFinderPreferences({ [key]:value });
         if (key === 'springDelay') {
           const valueText = general.querySelector('.finder-spring-value');
-          if (valueText) valueText.textContent = `${Math.round(value * 1000)} 毫秒`;
+          if (valueText) valueText.textContent = `${Math.round(value * 1000)} ${t('app.fnd3.cc4280ff9b26')}`;
         }
       });
     });
@@ -1519,7 +1584,7 @@
       });
     });
     const springRow = general.querySelector('.finder-spring-delay');
-    springRow?.appendChild(el('output','finder-spring-value',`${Math.round(prefs.springDelay * 1000)} 毫秒`));
+    springRow?.appendChild(el('output','finder-spring-value',`${Math.round(prefs.springDelay * 1000)} ${t('app.fnd3.cc4280ff9b26')}`));
     const springToggle = general.querySelector('[data-pref-value="springLoaded"]');
     const updateSpringState = () => {
       springRow?.classList.toggle('disabled', !springToggle.checked);
@@ -1529,7 +1594,7 @@
     updateSpringState();
 
     preferencesWindow = System.createWindow({
-      app:'finder', title:'Finder 偏好设置 — 通用', width:560, height:500,
+      app:'finder', title:t('ui.8a05679a7323'), width:560, height:500,
       content, bodyBg:'#ececec', noResize:true,
       autoFitContent:{ minHeight:360, maxHeight:560 },
       onClose:() => { preferencesWindow = null; },
@@ -1544,32 +1609,32 @@
     if (viewOptionsWindow?.isConnected) System.closeWindow(viewOptionsWindow);
     let options = folderViewOptions(win._path);
     const c = el('div','finder-view-options');
-    c.innerHTML = `<h2>${esc(win._path === '/' ? 'Macintosh HD' : VFS.baseName(win._path))}</h2>
-      <label>排列方式
+    c.innerHTML = `<h2>${esc(displayName(win._path))}</h2>
+      <label>${t('app.fnd2.fd752c64c18b')}
         <select class="aqua-select" data-view-option="arrange">
-          <option value="name">名称</option><option value="kind">种类</option><option value="size">大小</option>
+          <option value="name">${t('app.finder.2388e20815')}</option><option value="kind">${t('app.finder.60b3e31e64')}</option><option value="size">${t('app.finder.99a28bf48f')}</option>
         </select>
       </label>
-      <label class="finder-view-slider"><span>图标大小</span><small>小</small><input type="range" min="44" max="96" step="4" data-view-option="iconSize"><small>大</small><output></output></label>
-      <label class="finder-view-slider"><span>网格间距</span><small>紧密</small><input type="range" min="2" max="28" step="2" data-view-option="gridSpacing"><small>宽松</small><output></output></label>
-      <label>文字大小
+      <label class="finder-view-slider"><span>${t('app.finder.1ce71f9698')}</span><small>${t('app.finder.3a0962962e')}</small><input type="range" min="44" max="96" step="4" data-view-option="iconSize"><small>${t('app.finder.7929ddfed6')}</small><output></output></label>
+      <label class="finder-view-slider"><span>${t('app.finder.777bb54e8a')}</span><small>${t('app.finder.e5e5271c3b')}</small><input type="range" min="2" max="28" step="2" data-view-option="gridSpacing"><small>${t('app.finder.eb32ace53f')}</small><output></output></label>
+      <label>${t('app.fnd2.2c772e64dac0')}
         <select class="aqua-select" data-view-option="textSize">
-          ${[9,10,11,12,13,14,16].map((size) => `<option value="${size}">${size} 点</option>`).join('')}
+          ${[9,10,11,12,13,14,16].map((size) => `<option value="${size}">${t('app.fnd.pt', { n: size })}</option>`).join('')}
         </select>
       </label>
-      <fieldset><legend>标签位置</legend>
-        <label><input type="radio" name="finder-label-position" value="bottom"> 底部</label>
-        <label><input type="radio" name="finder-label-position" value="right"> 右侧</label>
+      <fieldset><legend>${t('app.fnd2.5bef0afa5350')}</legend>
+        <label><input type="radio" name="finder-label-position" value="bottom"> ${t('app.finder.d3c28fd18b')}</label>
+        <label><input type="radio" name="finder-label-position" value="right"> ${t('app.fnd2.1e0bcded3725')}</label>
       </fieldset>
-      <label class="finder-view-check"><input type="checkbox" data-view-option="showItemInfo"> 显示项目简介</label>
-      <label class="finder-view-check"><input type="checkbox" data-view-option="showIconPreview"> 显示图标预览</label>
-      <fieldset class="finder-view-background"><legend>背景</legend>
-        <label><input type="radio" name="finder-background" value="white"> 白色</label>
-        <label><input type="radio" name="finder-background" value="color"> 颜色</label>
-        <input type="color" data-view-option="backgroundColor" aria-label="背景颜色">
+      <label class="finder-view-check"><input type="checkbox" data-view-option="showItemInfo"> ${t('app.fnd2.b1e818c55362')}</label>
+      <label class="finder-view-check"><input type="checkbox" data-view-option="showIconPreview"> ${t('app.finder.803c568742')}</label>
+      <fieldset class="finder-view-background"><legend>${t('app.fnd2.485400416011')}</legend>
+        <label><input type="radio" name="finder-background" value="white"> ${t('app.fnd2.a99d01f78407')}</label>
+        <label><input type="radio" name="finder-background" value="color"> ${t('app.fnd2.939b27045a74')}</label>
+        <input type="color" data-view-option="backgroundColor" aria-label="${t('app.fnd.106e9e76a8cd')}">
       </fieldset>
-      <label class="finder-view-check"><input type="checkbox" data-view-option="alwaysView"> 始终以${({icons:'图标',list:'列表',columns:'分栏',cover:'Cover Flow'})[win._view] || '当前'}方式打开</label>
-      <footer><button class="aqua-btn finder-view-default">用作默认</button></footer>`;
+      <label class="finder-view-check"><input type="checkbox" data-view-option="alwaysView"> ${t('app.fnd.alwaysViewLbl')}</label>
+      <footer><button class="aqua-btn finder-view-default">${t('app.fnd2.9f51f93b8ab4')}</button></footer>`;
 
     const persist = () => {
       writeFolderViewOptions(win._path, options);
@@ -1621,11 +1686,11 @@
       }));
     c.querySelector('.finder-view-default').addEventListener('click', () => {
       writeDefaultViewOptions(options);
-      Leopard.toast('Finder', '这些查看选项将用于新的文件夹。');
+      Leopard.toast('Finder', t('ui.76486119b13d'));
     });
     refreshOutputs();
     const createdWindow = System.createWindow({
-      app:'finder', title:'查看选项', width:370, height:455, content:c,
+      app:'finder', title:t('ui.704d7e447073'), width:370, height:455, content:c,
       bodyBg:'#ececec', noResize:true,
       autoFitContent:{ minHeight:360, maxHeight:520 },
       onClose:(closingWindow) => {
@@ -1648,53 +1713,53 @@
     const currentView = top?._view || localStorage.getItem(VIEW_KEY) || 'icons';
     const finderWindows = [...openWindows].filter((win) => win.isConnected);
     return [
-    { title:'文件', items:[
-      {label:'新建 Finder 窗口',shortcut:'⌘N',action:()=>System.launch('finder',{forceNew:true})},
-      {label:'新建文件夹',shortcut:'⇧⌘N',disabled:!top || !VFS.isDir(top._path),action:()=>createFolder(top)},
-      {sep:true},{label:selection.length > 1 ? `打开 ${selection.length} 个项目` : '打开',shortcut:'⌘O',disabled:!hasSelection,action:()=>selection.forEach((path)=>openItem(top,path))},
-      {label:'快速查看',shortcut:'Space',disabled:!hasSelection,action:()=>hasSelection&&Leopard.quickLook(selection[0])},
-      {label:selection.length > 1 ? `显示 ${selection.length} 项简介` : '显示简介',shortcut:'⌘I',disabled:!hasSelection,action:()=>selection.forEach(getInfo)},
-      ...(canDownload ? [{label:'下载到本地…',action:()=>selection.forEach(System.downloadVfsFile)}] : []),
+    { title:t('ui.49deaf7da20d'), items:[
+      {label:t('ui.a9ffba1b4d23'),shortcut:'⌘N',action:()=>System.launch('finder',{forceNew:true})},
+      {label:t('ui.95cf3cd4212b'),shortcut:'⇧⌘N',disabled:!top || !VFS.isDir(top._path),action:()=>createFolder(top)},
+      {sep:true},{label:selection.length > 1 ? `${t('app.fnd3.fa38fa8553a0')} ${selection.length}${t('app.fnd2.a9b95075eca1')}${t('app.fnd3.4a35434be4e6')}` : t('ui.65fc81e16119'),shortcut:'⌘O',disabled:!hasSelection,action:()=>selection.forEach((path)=>openItem(top,path))},
+      {label:t('ui.9e61629d2319'),shortcut:'Space',disabled:!hasSelection,action:()=>hasSelection&&Leopard.quickLook(selection[0])},
+      {label:selection.length > 1 ? `${t('app.fnd3.8700d32d489b')} ${selection.length} ${t('app.fnd3.6e76cc0b2e01')}` : t('ui.d3eda18f01f6'),shortcut:'⌘I',disabled:!hasSelection,action:()=>selection.forEach(getInfo)},
+      ...(canDownload ? [{label:t('ui.6584b4c39ba4'),action:()=>selection.forEach(System.downloadVfsFile)}] : []),
       {sep:true},
-      {label:'制作替身',shortcut:'⌘L',disabled:!hasSelection,action:()=>makeAliases(top)},
-      {label:'复制',shortcut:'⌘D',disabled:!hasSelection,action:()=>duplicateSelection(top)},
-      {label:'重新命名…',disabled:!canRename,action:()=>renameSelection(top)},
+      {label:t('ui.135c2ef2d8f3'),shortcut:'⌘L',disabled:!hasSelection,action:()=>makeAliases(top)},
+      {label:t('ui.4edd1d00875d'),shortcut:'⌘D',disabled:!hasSelection,action:()=>duplicateSelection(top)},
+      {label:t('ui.e7b016c87fc7'),disabled:!canRename,action:()=>renameSelection(top)},
       ...(inTrash ? [
-        {label:'放回原处',disabled:!hasSelection,action:()=>selection.forEach(restoreItem)},
-        {label:'立即删除…',disabled:!hasSelection,action:()=>permanentlyDeleteSelection(top)},
-      ] : [{label:'移到废纸篓',shortcut:'⌘⌫',disabled:!canTrash,action:()=>trashSelection(top)}]),
-      {sep:true},{label:'关闭窗口',shortcut:'⌘W',action:()=>{const w=System.topWindowOf('finder');if(w)System.closeWindow(w);}},
+        {label:t('ui.09fb84c246bf'),disabled:!hasSelection,action:()=>selection.forEach(restoreItem)},
+        {label:t('ui.369e8a4499d4'),disabled:!hasSelection,action:()=>permanentlyDeleteSelection(top)},
+      ] : [{label:t('ui.e25762f172c1'),shortcut:'⌘⌫',disabled:!canTrash,action:()=>trashSelection(top)}]),
+      {sep:true},{label:t('ui.51daeffe4774'),shortcut:'⌘W',action:()=>{const w=System.topWindowOf('finder');if(w)System.closeWindow(w);}},
     ]},
-    { title:'编辑', items:[
-      {label:VFS.canUndo() ? `撤销 ${VFS.undoLabel()}` : '撤销',shortcut:'⌘Z',disabled:!VFS.canUndo(),action:()=>historyAction(frontFinderWindow(),'undo')},
-      {label:VFS.canRedo() ? `重做 ${VFS.redoLabel()}` : '重做',shortcut:'⇧⌘Z',disabled:!VFS.canRedo(),action:()=>historyAction(frontFinderWindow(),'redo')},
+    { title:t('ui.a7f814c0a40d'), items:[
+      {label:VFS.canUndo() ? t('app.fnd.undo', { label: VFS.undoLabel() }) : t('ui.9fcefd8dc81e'),shortcut:'⌘Z',disabled:!VFS.canUndo(),action:()=>historyAction(frontFinderWindow(),'undo')},
+      {label:VFS.canRedo() ? t('app.fnd.redo', { label: VFS.redoLabel() }) : t('ui.1238f0d36361'),shortcut:'⇧⌘Z',disabled:!VFS.canRedo(),action:()=>historyAction(frontFinderWindow(),'redo')},
       {sep:true},
-      {label:'剪切',shortcut:'⌘X',disabled:!hasSelection,action:()=>copySelection(top,'cut')},
-      {label:'拷贝',shortcut:'⌘C',disabled:!hasSelection,action:()=>copySelection(top,'copy')},
-      {label:'粘贴',shortcut:'⌘V',disabled:!top || !clipboard.paths.length,action:()=>pasteInto(top)},
-      {label:'全选',shortcut:'⌘A',disabled:!top || !fileRows(top).length,action:()=>{if(top){const rows=fileRows(top);top._finderSelection=new Set(rows);top._finderSelected=rows[0]||null;refreshSelection(top);}}},
+      {label:t('ui.29b653b40e8c'),shortcut:'⌘X',disabled:!hasSelection,action:()=>copySelection(top,'cut')},
+      {label:t('ui.bc6d0279b622'),shortcut:'⌘C',disabled:!hasSelection,action:()=>copySelection(top,'copy')},
+      {label:t('ui.de7fb7d3cf47'),shortcut:'⌘V',disabled:!top || !clipboard.paths.length,action:()=>pasteInto(top)},
+      {label:t('ui.3e44b2a93338'),shortcut:'⌘A',disabled:!top || !fileRows(top).length,action:()=>{if(top){const rows=fileRows(top);top._finderSelection=new Set(rows);top._finderSelected=rows[0]||null;refreshSelection(top);}}},
     ]},
-    { title:'显示', items:[
-      {label:'为图标',shortcut:'⌘1',checked:currentView==='icons',action:()=>setTopView('icons')},{label:'为列表',shortcut:'⌘2',checked:currentView==='list',action:()=>setTopView('list')},
-      {label:'为分栏',shortcut:'⌘3',checked:currentView==='columns',action:()=>setTopView('columns')},{label:'为 Cover Flow',shortcut:'⌘4',checked:currentView==='cover',action:()=>setTopView('cover')},
-      {sep:true},{label:'显示查看选项',shortcut:'⌘J',disabled:!top,action:()=>top&&showViewOptions(top)},
+    { title:t('ui.71b6771bc789'), items:[
+      {label:t('app.finder.f17b3b2604'),shortcut:'⌘1',checked:currentView==='icons',action:()=>setTopView('icons')},{label:t('app.finder.6ec617f70c'),shortcut:'⌘2',checked:currentView==='list',action:()=>setTopView('list')},
+      {label:t('app.finder.425d61cce4'),shortcut:'⌘3',checked:currentView==='columns',action:()=>setTopView('columns')},{label:t('ui.13ef6e14a313'),shortcut:'⌘4',checked:currentView==='cover',action:()=>setTopView('cover')},
+      {sep:true},{label:t('ui.72aa62313557'),shortcut:'⌘J',disabled:!top,action:()=>top&&showViewOptions(top)},
     ]},
-    { title:'前往', items:[
-      {label:'后退',shortcut:'⌘[',disabled:!top?._back?.length,action:()=>top?._backBtn.click()},
-      {label:'前进',shortcut:'⌘]',disabled:!top?._forward?.length,action:()=>top?._forwardBtn.click()},
-      {sep:true},{label:'电脑',shortcut:'⇧⌘C',action:()=>goTop('/')},{label:'个人',shortcut:'⇧⌘H',action:()=>goTop('/用户/roll')},
-      {label:'桌面',shortcut:'⇧⌘D',action:()=>goTop('/用户/roll/桌面')},
-      {label:'文稿',shortcut:'⇧⌘O',action:()=>goTop('/用户/roll/文稿')},
-      {label:'下载',shortcut:'⌥⌘L',action:()=>goTop('/用户/roll/下载')},
-      {label:'应用程序',shortcut:'⇧⌘A',action:()=>goTop('/应用程序')},{label:'实用工具',shortcut:'⇧⌘U',action:()=>goTop('/应用程序/实用工具')},
+    { title:t('ui.23926d61468c'), items:[
+      {label:t('ui.4cf4c11a1b0b'),shortcut:'⌘[',disabled:!top?._back?.length,action:()=>top?._backBtn.click()},
+      {label:t('ui.320ffeefca2c'),shortcut:'⌘]',disabled:!top?._forward?.length,action:()=>top?._forwardBtn.click()},
+      {sep:true},{label:t('ui.ec87a4b86709'),shortcut:'⇧⌘C',action:()=>goTop('/')},{label:t('ui.2d7c0c32a376'),shortcut:'⇧⌘H',action:()=>goTop(paths.home)},
+      {label:t('ui.65fdeb927bb9'),shortcut:'⇧⌘D',action:()=>goTop(paths.desktop)},
+      {label:t('ui.908a913cf12c'),shortcut:'⇧⌘O',action:()=>goTop(paths.documents)},
+      {label:t('ui.2b9d013177da'),shortcut:'⌥⌘L',action:()=>goTop(paths.downloads)},
+      {label:t('ui.8a443802664a'),shortcut:'⇧⌘A',action:()=>goTop('/应用程序')},{label:t('app.finder.3c95dd4b52'),shortcut:'⇧⌘U',action:()=>goTop('/应用程序/实用工具')},
       {sep:true},
-      {label:'前往文件夹…',shortcut:'⇧⌘G',disabled:!top,action:()=>goToFolder(top)},
-      {label:'连接服务器…',shortcut:'⌘K',disabled:!top,action:()=>connectToServer(top)},
+      {label:t('ui.1713522213cb'),shortcut:'⇧⌘G',disabled:!top,action:()=>goToFolder(top)},
+      {label:t('ui.e67b1a6f88dc'),shortcut:'⌘K',disabled:!top,action:()=>connectToServer(top)},
     ]},
-    { title:'窗口', items:[
-      {label:'最小化',shortcut:'⌘M',action:()=>{const w=System.topWindowOf('finder');if(w)System.minimizeWindow(w);}},
-      {label:'缩放',action:()=>System.topWindowOf('finder')?.querySelector('.tl-zoom')?.click()},
-      {sep:true},{label:'将所有窗口移到前面',action:()=>openWindows.forEach((w)=>System.focusWindow(w))},
+    { title:t('ui.a70a15135c37'), items:[
+      {label:t('ui.ca8223c5fc42'),shortcut:'⌘M',action:()=>{const w=System.topWindowOf('finder');if(w)System.minimizeWindow(w);}},
+      {label:t('ui.12e2ed4d508a'),action:()=>System.topWindowOf('finder')?.querySelector('.tl-zoom')?.click()},
+      {sep:true},{label:t('ui.d6e0e5370e6e'),action:()=>openWindows.forEach((w)=>System.focusWindow(w))},
       ...(finderWindows.length ? [
         {sep:true},
         ...finderWindows.map((win) => ({
@@ -1704,10 +1769,10 @@
         })),
       ] : []),
     ]},
-    { title:'帮助', items:[
-      {label:'Finder 帮助',shortcut:'⌘?',action:()=>System.launch('helpviewer',{appId:'finder'})},
+    { title:t('ui.adf465ebf0e6'), items:[
+      {label:t('ui.c2a4ddb803f2'),shortcut:'⌘?',action:()=>System.launch('helpviewer',{appId:'finder'})},
       {sep:true},
-      {label:'搜索',action:()=>System.launch('helpviewer',{appId:'finder',focusSearch:true})},
+      {label:t('ui.f04090805c6e'),action:()=>System.launch('helpviewer',{appId:'finder',focusSearch:true})},
     ]},
   ];
   };
@@ -1718,27 +1783,28 @@
   document.addEventListener('finder-preferences-changed', (event) => {
     cachedFinderPrefs = event.detail || System.getFinderPreferences();
     openWindows.forEach((win) => {
-      if (!win.isConnected || !win._side) return;
-      const replacement = makeSidebar(win);
-      win._side.replaceWith(replacement);
-      win._side = replacement;
+      rebuildSidebar(win);
       render(win);
     });
   });
   document.addEventListener('finder-servers-changed', () => {
     openWindows.forEach((win) => {
-      if (!win.isConnected || !win._side) return;
-      const replacement = makeSidebar(win);
-      win._side.replaceWith(replacement);
-      win._side = replacement;
+      rebuildSidebar(win);
       render(win);
     });
+  });
+  document.addEventListener('locale-ui-refresh', () => {
+    // App names are updated by main.js immediately before this event. Rebuild
+    // the sidebar and every view so open Finder windows never retain labels
+    // from the previous language; all selected/drag paths remain physical VFS
+    // paths throughout the repaint.
+    openWindows.forEach(refreshFinderChrome);
   });
 
   System.registerApp({
     id:'finder',name:'Finder',icon,open,multiWindow:true,menus,showPreferences,
     commandTarget:(command, front) => ['close-window','minimize','zoom'].includes(command) ? front : frontFinderWindow(),
-    about:'Leopard 文件管理器：图标、列表、分栏与 Cover Flow，Quick Look、搜索、标签、简介和智能文件夹。',
-    keywords:'finder 文件 quick look cover flow 搜索 文件夹',
+    about:t('ui.6e62600ea11f'),
+    keywords:t('ui.76e247480817'),
   });
 })();

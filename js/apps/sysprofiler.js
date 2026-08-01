@@ -1,6 +1,29 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // 系统报告 (System Profiler) — real hardware/software info from browser APIs
 (() => {
   const { el, HW, Kexts } = System;
+
+  const formatBytes = (bytes) => {
+    const value = Number(bytes) || 0;
+    if (value < 1024) return `${value} B`;
+    if (value < 1048576) return `${(value / 1024).toFixed(1)} KB`;
+    return `${(value / 1048576).toFixed(1)} MB`;
+  };
+  const storageState = () => VFS.storageStatus?.() || {
+    backend:'localStorage', pending:0, estimatedBytes:0, historyBytes:0,
+    schemaVersion:1, lastSavedAt:null, lastError:null,
+  };
+  const storageBackendName = (state = storageState()) => ({
+    indexeddb:t('app.sp.storageIndexedDB'),
+    localStorage:t('app.sp.storageLocalFallback'),
+    memory:t('app.sp.storageMemoryOnly'),
+    initializing:t('app.sp.storageInitializing'),
+  }[state.backend] || state.backend || t('ui.d9c32a4c3dda'));
 
   const icon = `<svg viewBox="0 0 64 64"><rect x="8" y="10" width="48" height="34" rx="3" fill="#2a2f38" stroke="#5a6270" stroke-width="1.5"/><rect x="11" y="13" width="42" height="28" fill="#7ec0ea"/><text x="32" y="32" text-anchor="middle" font-size="14" fill="#fff" font-family="Monaco,monospace">i</text><path d="M24 44 h16 l3 8 H21z" fill="#b8bec8" stroke="#5a6270" stroke-width="1.5"/><rect x="16" y="52" width="32" height="4" rx="2" fill="#9aa2b0"/></svg>`;
 
@@ -13,7 +36,7 @@
       let done = false;
       const stamps = [];
       const finish = (v) => { if (!done) { done = true; res(v); } };
-      setTimeout(() => finish('未知（标签页在后台）'), 800);
+      setTimeout(() => finish(t('ui.ef56c988f354')), 800);
       function frame(t) {
         if (done) return;
         stamps.push(t);
@@ -35,325 +58,332 @@
       const c = document.createElement('canvas');
       const gl = c.getContext('webgl2', { powerPreference: 'high-performance' })
         || c.getContext('webgl', { powerPreference: 'high-performance' });
-      if (!gl) return [['WebGL', '不支持']];
-      out.push(['图形 API', System.HW.graphicsApi]);
-      out.push(['最大纹理尺寸', gl.getParameter(gl.MAX_TEXTURE_SIZE) + ' px']);
-      out.push(['最大视口', gl.getParameter(gl.MAX_VIEWPORT_DIMS).join(' × ')]);
-      out.push(['着色语言', gl.getParameter(gl.SHADING_LANGUAGE_VERSION)]);
-      out.push(['抗锯齿', gl.getContextAttributes().antialias ? '支持' : '不支持']);
-      out.push(['WebGL 扩展数', String((gl.getSupportedExtensions() || []).length)]);
+      if (!gl) return [['WebGL', t('ui.ef8274b96890')]];
+      out.push([t('ui.b7a8cff4db7d'), System.HW.graphicsApi]);
+      out.push([t('app.sp.9ea7b144d9'), gl.getParameter(gl.MAX_TEXTURE_SIZE) + ' px']);
+      out.push([t('app.sp.b54c4b1012'), gl.getParameter(gl.MAX_VIEWPORT_DIMS).join(' × ')]);
+      out.push([t('app.sp.1f362098c3'), gl.getParameter(gl.SHADING_LANGUAGE_VERSION)]);
+      out.push([t('app.sp.f2dfc1e227'), gl.getContextAttributes().antialias ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')]);
+      out.push([t('ui.f50a001968a9'), String((gl.getSupportedExtensions() || []).length)]);
       if (System.HW.webgl2) {
-        out.push(['最大多重采样', String(gl.getParameter(gl.MAX_SAMPLES))]);
-        out.push(['最大绘制缓冲', String(gl.getParameter(gl.MAX_DRAW_BUFFERS))]);
+        out.push([t('app.sp.cde68308bb'), String(gl.getParameter(gl.MAX_SAMPLES))]);
+        out.push([t('app.sp.b949a6d724'), String(gl.getParameter(gl.MAX_DRAW_BUFFERS))]);
       }
     } catch (e) {}
     return out;
   }
 
   const SECTIONS = [
-    { id: 'hw', name: '硬件概述', group: '硬件', rows: () => [
-      ['型号名称', HW.model],
-      ['型号标识符', HW.modelIdentifier],
-      ['处理器名称', HW.processorName],
-      ['处理器', HW.processor],
-      ['处理器信息来源', HW.processorSource],
-      ['处理器速度', '浏览器未公开'],
-      ['处理器数量', '浏览器未公开'],
-      ['总核心数', `${HW.cores}（逻辑处理器）`],
-      ['内存', HW.memory],
-      ['内存信息来源', HW.memorySource],
-      ['图形处理器', HW.gpu],
-      ['序列号', HW.serial],
-      ['启动磁盘', 'Macintosh HD (localStorage)'],
-      ['固件版本', 'WebBoot 9A581'],
-      ['SMC 版本', '1.0f1-web（虚拟）'],
-      ['触控', navigator.maxTouchPoints ? `支持（${navigator.maxTouchPoints} 点触控）` : '不支持（鼠标/触控板）'],
+    { id: 'hw', name: t('ui.7a608e2161a2'), group: t('ui.b4cd99b8d4f1'), rows: () => [
+      [t('ui.b9c18e0bdeec'), HW.model],
+      [t('app.sp.d74694dcab'), HW.modelIdentifier],
+      [t('ui.f612d012eb39'), HW.processorName],
+      [t('app.sp.d820caff4b'), HW.processor],
+      [t('app.sp.a1fa67d20a'), HW.processorSource],
+      [t('app.sp.1d065e43ec'), t('app.sp.5b28bddd2b')],
+      [t('app.sp.b6f001e4bb'), t('app.sp.5b28bddd2b')],
+      [t('app.sp.0731752f95'), `${HW.cores}（${t('app.sp4.92b414f3ec6d')}${t('app.sp3.f25bcc91a4b6')}）`],
+      [t('app.sp.a29cc470a2'), HW.memory],
+      [t('app.sp.cb18e4a29d'), HW.memorySource],
+      [t('app.sp.715dc21f84'), HW.gpu],
+      [t('app.sp.4fc9c5f202'), HW.serial],
+      [t('app.sp.7339c56d6f'), `Macintosh HD (${storageBackendName()})`],
+      [t('app.sp.376c790eea'), 'WebBoot 9A581'],
+      [t('ui.7583fac643b9'), t('ui.f4865b2479bc')],
+      [t('app.sp.1de033a7d2'), navigator.maxTouchPoints ? t('app.sp.touchPts', { n: navigator.maxTouchPoints }) : t('ui.11ef53ab2c59')],
     ]},
-    { id: 'gpu', name: '图形卡/显示器', rows: async () => {
+    { id: 'gpu', name: t('ui.5b1ca77f81f0'), rows: async () => {
       const fps = await measureFps();
       return [
-        ['芯片组型号', HW.gpu],
-        ['WebGL', HW.webgl ? `支持 — ${HW.graphicsApi}` : '不支持'],
-        ['WebGL 2', HW.webgl2 ? '支持（游戏优先使用）' : '不支持（使用兼容路径）'],
-        ['驱动版本', HW.glVersion || '未知'],
-        ['Quartz Extreme', HW.webgl && Kexts.isLoaded('QuartzExtreme.kext') ? '已启用（硬件加速合成）' : '未启用（软件渲染）'],
-        ['分辨率', HW.screen],
-        ['可用区域', `${screen.availWidth} × ${screen.availHeight}`],
-        ['像素深度', HW.depth],
-        ['缩放因子 (DPR)', String(HW.dpr) + (HW.dpr > 1 ? '（Retina）' : '')],
-        ['刷新率（实测）', fps],
-        ['色域', matchMedia('(color-gamut: p3)').matches ? '广色域 (Display P3)' : 'sRGB'],
-        ['HDR', matchMedia('(dynamic-range: high)').matches ? '支持' : '不支持'],
+        [t('app.sp.866592efc5'), HW.gpu],
+        ['WebGL', HW.webgl ? `${t('app.sp4.8fe29a5c6d09')} — ${HW.graphicsApi}` : t('ui.ef8274b96890')],
+        ['WebGL 2', HW.webgl2 ? t('ui.60e21625be29') : t('ui.6da06087e3bf')],
+        [t('app.sp.4447e57f62'), HW.glVersion || t('ui.d9c32a4c3dda')],
+        ['Quartz Extreme', HW.webgl && Kexts.isLoaded('QuartzExtreme.kext') ? t('ui.5b1ce5f3a76a') : t('ui.5c4cd8b667a1')],
+        [t('app.sp.02eb3a220a'), HW.screen],
+        [t('ui.5cd4d66fea3a'), `${screen.availWidth} × ${screen.availHeight}`],
+        [t('app.sp2.2462a87e5c91'), HW.depth],
+        [t('ui.a8779752ee4a'), String(HW.dpr) + (HW.dpr > 1 ? '（Retina）' : '')],
+        [t('ui.ea1e93f1ea78'), fps],
+        [t('app.sp2.9b2166196240'), matchMedia('(color-gamut: p3)').matches ? t('ui.467c7988bf08') : 'sRGB'],
+        ['HDR', matchMedia('(dynamic-range: high)').matches ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
         ...glDetails(),
       ];
     }},
-    { id: 'mem', name: '内存', rows: () => {
+    { id: 'mem', name: t('app.sp.a29cc470a2'), rows: () => {
       const rows = [
-        ['物理内存（浏览器上报）', HW.memory],
-        ['信息来源', HW.memorySource],
+        [t('ui.38883bd9c67c'), HW.memory],
+        [t('app.sp2.0b433e481a69'), HW.memorySource],
       ];
       const pm = performance.memory;
       if (pm) {
-        rows.push(['JS 堆上限', (pm.jsHeapSizeLimit / 1048576).toFixed(0) + ' MB']);
-        rows.push(['JS 堆已分配', (pm.totalJSHeapSize / 1048576).toFixed(1) + ' MB']);
-        rows.push(['JS 堆已使用', (pm.usedJSHeapSize / 1048576).toFixed(1) + ' MB']);
-      } else rows.push(['JS 堆信息', '此浏览器不提供 (performance.memory)']);
+        rows.push([t('app.sp2.0e142b22145e'), (pm.jsHeapSizeLimit / 1048576).toFixed(0) + ' MB']);
+        rows.push([t('app.sp2.41c968c8d166'), (pm.totalJSHeapSize / 1048576).toFixed(1) + ' MB']);
+        rows.push([t('app.sp3.ba871c502233'), (pm.usedJSHeapSize / 1048576).toFixed(1) + ' MB']);
+      } else rows.push([t('app.sp3.67477856f14f'), t('ui.620a5307fa57')]);
       return rows;
     }},
-    { id: 'battery', name: '电源/电池', rows: async () => {
-      if (!navigator.getBattery) return [['电池信息', '此浏览器不提供 (Battery API)']];
+    { id: 'battery', name: t('app.sp3.1a819467fe1b'), rows: async () => {
+      if (!navigator.getBattery) return [[t('app.sp2.74bcf9722fe0'), t('ui.f784aef2b495')]];
       try {
         const b = await navigator.getBattery();
-        const fmt = (s) => (s === Infinity || isNaN(s)) ? '—' : `${Math.floor(s / 3600)} 小时 ${Math.round(s % 3600 / 60)} 分钟`;
+        const fmt = (s) => (s === Infinity || isNaN(s)) ? '—' : t('app.sp.hm', { h: Math.floor(s / 3600), m: Math.round(s % 3600 / 60) });
         return [
-          ['电量', Math.round(b.level * 100) + ' %'],
-          ['电源', b.charging ? '电源适配器（正在充电）' : '电池'],
-          ['充满还需', b.charging ? fmt(b.chargingTime) : '—'],
-          ['预计续航', b.charging ? '—' : fmt(b.dischargingTime)],
+          [t('app.sp3.1058e7320dbf'), Math.round(b.level * 100) + ' %'],
+          [t('app.sp3.d9bb85d3eb8f'), b.charging ? t('ui.df31e094c32b') : t('app.sp3.400fa6d9cd52')],
+          [t('app.sp3.d4d343dd311f'), b.charging ? fmt(b.chargingTime) : '—'],
+          [t('app.sp3.e292daaf2a7e'), b.charging ? '—' : fmt(b.dischargingTime)],
         ];
-      } catch (e) { return [['电池信息', '读取失败']]; }
+      } catch (e) { return [[t('app.sp2.74bcf9722fe0'), t('app.sp.5fd6d32321')]]; }
     }},
-    { id: 'storage', name: '存储', rows: async () => {
-      let quota = '未知', usage = '未知', persisted = '未知';
+    { id: 'storage', name: t('ui.091ca5213ef3'), rows: async () => {
+      let quota = t('ui.d9c32a4c3dda'), usage = t('ui.d9c32a4c3dda'), persisted = t('ui.d9c32a4c3dda');
       try {
         const est = await navigator.storage.estimate();
         quota = (est.quota / 1073741824).toFixed(1) + ' GB';
         usage = (est.usage / 1024).toFixed(1) + ' KB';
-        persisted = (await navigator.storage.persisted()) ? '是（持久存储）' : '否（可被浏览器回收）';
+        persisted = (await navigator.storage.persisted()) ? t('ui.e361558e82be') : t('ui.d0a3ff0d5432');
       } catch (e) {}
-      const vfsSize = (JSON.stringify(localStorage).length / 1024).toFixed(1);
-      return [
-        ['磁盘', 'Macintosh HD'],
-        ['文件系统', 'HFS+ (localStorage 模拟)'],
-        ['容量（浏览器配额）', quota],
-        ['已使用（源）', usage],
-        ['localStorage 占用', vfsSize + ' KB'],
-        ['持久化', persisted],
+      const state = storageState();
+      const rows = [
+        [t('app.sp3.ec0312881cb7'), 'Macintosh HD'],
+        [t('ui.42949b7f8fc9'), t('ui.c2f1b1653f46')],
+        [t('app.sp.storageBackend'), storageBackendName(state)],
+        [t('app.sp.storageSchema'), String(state.schemaVersion || '—')],
+        [t('ui.a2f327f013d9'), quota],
+        [t('ui.dca6ca992b7d'), usage],
+        [t('ui.b1e6c560ee51'), formatBytes(state.estimatedBytes)],
+        [t('app.sp.storageHistory'), formatBytes(state.historyBytes)],
+        [t('app.sp.storagePending'), String(state.pending || 0)],
+        [t('app.sp.storageLastSaved'), state.lastSavedAt ? new Date(state.lastSavedAt).toLocaleString() : '—'],
+        [t('app.sp3.f5e726af6283'), persisted],
       ];
+      if (state.lastError) rows.push([t('app.sp.storageLastError'), `${state.lastError.phase}: ${state.lastError.message}`]);
+      return rows;
     }},
-    { id: 'audio', name: '音频', rows: () => {
+    { id: 'audio', name: t('app.sp3.3ea7e16e6127'), rows: () => {
       const rows = [];
       try {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (Ctx) {
           const ctx = new Ctx();
-          rows.push(['Web Audio', '支持']);
-          rows.push(['采样率', ctx.sampleRate + ' Hz']);
-          rows.push(['输出延迟基准', (ctx.baseLatency != null ? (ctx.baseLatency * 1000).toFixed(1) + ' ms' : '未知')]);
+          rows.push(['Web Audio', t('ui.a9aab15d0126')]);
+          rows.push([t('app.sp3.251c6b0718a4'), ctx.sampleRate + ' Hz']);
+          rows.push([t('app.sp3.922a3b19d030'), (ctx.baseLatency != null ? (ctx.baseLatency * 1000).toFixed(1) + ' ms' : t('ui.d9c32a4c3dda'))]);
           ctx.close();
-        } else rows.push(['Web Audio', '不支持']);
+        } else rows.push(['Web Audio', t('ui.ef8274b96890')]);
       } catch (e) {}
-      rows.push(['语音合成音色', (speechSynthesis && speechSynthesis.getVoices().length || 0) + ' 个']);
-      rows.push(['MP3 解码', document.createElement('audio').canPlayType('audio/mpeg') ? '支持' : '不支持']);
-      rows.push(['AAC 解码', document.createElement('audio').canPlayType('audio/mp4') ? '支持' : '不支持']);
+      rows.push([t('app.sp3.54a90e40cf15'), (speechSynthesis && speechSynthesis.getVoices().length || 0) + t('app.sp3.ef59e3035af2')]);
+      rows.push([t('ui.a5508cdf2eda'), document.createElement('audio').canPlayType('audio/mpeg') ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')]);
+      rows.push([t('ui.e1761020807c'), document.createElement('audio').canPlayType('audio/mp4') ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')]);
       return rows;
     }},
     { id: 'ata', name: 'Serial-ATA', rows: () => [
-      ['Intel ICH8-M AHCI', '虚拟控制器'],
-      ['厂商', 'Leopard Web'],
-      ['产品', 'Macintosh HD'],
-      ['协议', 'Web Storage / IndexedDB'],
-      ['可移除介质', '否'],
-      ['BSD 名称', 'disk0s2（兼容显示）'],
-      ['S.M.A.R.T. 状态', '已验证（虚拟磁盘）'],
+      ['Intel ICH8-M AHCI', t('app.sp3.f254a16982cf')],
+      [t('app.sp3.257c1398d8af'), 'Leopard Web'],
+      [t('app.sp3.f23b116c1b3a'), 'Macintosh HD'],
+      [t('app.sp3.e7e6e3bd4d44'), storageBackendName()],
+      [t('ui.aed01fdabd41'), t('app.sp2.efd9e5128a0c')],
+      [t('ui.0e65e4f249e6'), t('ui.de30fc6e2260')],
+      [t('ui.6a3064dd161a'), t('ui.b0bee6289e3a')],
     ]},
     { id: 'usb', name: 'USB', rows: async () => {
       const rows = [
-        ['USB 高速总线', '浏览器设备沙箱'],
-        ['WebUSB API', navigator.usb ? '可用（设备访问需要用户授权）' : '此浏览器不提供'],
-        ['HID API', navigator.hid ? '可用（设备访问需要用户授权）' : '此浏览器不提供'],
-        ['游戏手柄', `${navigator.getGamepads ? navigator.getGamepads().filter(Boolean).length : 0} 个已连接`],
+        [t('ui.955a2db77791'), t('ui.0531ba3bea60')],
+        ['WebUSB API', navigator.usb ? t('ui.9a9576b89fc4') : t('app.sp.b2ac0c9fb1')],
+        ['HID API', navigator.hid ? t('ui.9a9576b89fc4') : t('app.sp.b2ac0c9fb1')],
+        [t('app.sp2.5b88ce4b64dc'), t('app.sp.gpConnected', { n: navigator.getGamepads ? navigator.getGamepads().filter(Boolean).length : 0 })],
       ];
       if (navigator.mediaDevices?.enumerateDevices) {
         try {
           const devices = await navigator.mediaDevices.enumerateDevices();
           devices.forEach((device, index) => rows.push([
-            `${device.kind === 'audioinput' ? '音频输入' : device.kind === 'audiooutput' ? '音频输出' : device.kind === 'videoinput' ? '摄像头' : '媒体设备'} ${index + 1}`,
-            device.label || '受保护的设备（授权后显示名称）',
+            `${device.kind === 'audioinput' ? t('app.sp3.87ac55652813') : device.kind === 'audiooutput' ? t('app.sp3.44d8c0fdc34d') : device.kind === 'videoinput' ? t('app.sp3.f1c327c65ec3') : t('ui.775286f841a9')} ${index + 1}`,
+            device.label || t('ui.31f09216eb02'),
           ]));
-        } catch (error) { rows.push(['媒体设备', '读取失败']); }
+        } catch (error) { rows.push([t('ui.775286f841a9'), t('app.sp.5fd6d32321')]); }
       }
       return rows;
     }},
     { id: 'bluetooth', name: 'Bluetooth', rows: () => [
-      ['Apple Bluetooth 软件版本', '2.1.9f10-web'],
-      ['Web Bluetooth', navigator.bluetooth ? '可用（配对时由浏览器请求授权）' : '此浏览器不提供'],
-      ['可发现', '关闭'],
-      ['Handoff', '不支持'],
-      ['说明', '网页只能看见用户在授权对话框中主动选择的设备'],
+      [t('ui.1f739ed100a2'), '2.1.9f10-web'],
+      ['Web Bluetooth', navigator.bluetooth ? t('ui.5191492281e5') : t('app.sp.b2ac0c9fb1')],
+      [t('app.sp.badf3dd932'), t('ui.6c14bd7f6f9e')],
+      ['Handoff', t('ui.ef8274b96890')],
+      [t('app.sp.51c40d04d8'), t('ui.ec94f023e314')],
     ]},
-    { id: 'firewire', name: 'FireWire', rows: () => [
-      ['FireWire 总线', '未检测到'],
-      ['说明', '浏览器没有 IEEE 1394 硬件枚举权限'],
+    { id: 'firewire', name: t('app.sp.22ed742eaa'), rows: () => [
+      [t('ui.94898d833a1e'), t('app.sp.3d6ed55d54')],
+      [t('app.sp.51c40d04d8'), t('ui.a03cfb78e1f6')],
     ]},
-    { id: 'disc', name: '光盘刻录', rows: () => {
+    { id: 'disc', name: t('app.sp.128a89b81a'), rows: () => {
       const video = document.createElement('video');
       return [
-        ['刻录机', '未检测到（网页无法直接控制光驱）'],
-        ['CD 音频读取', document.createElement('audio').canPlayType('audio/wav') ? '可解码 WAV' : '未知'],
-        ['DVD 视频解码', video.canPlayType('video/mp4') ? '支持浏览器兼容视频' : '未知'],
-        ['虚拟磁盘映像', 'VFS 支持只读演示卷'],
+        [t('app.sp.b450aa14b4'), t('ui.56de77caa02b')],
+        [t('app.sp.59e50fbf56'), document.createElement('audio').canPlayType('audio/wav') ? t('ui.04dffbab9fb7') : t('ui.d9c32a4c3dda')],
+        [t('ui.dd77f703e5e7'), video.canPlayType('video/mp4') ? t('ui.8d250bf36175') : t('ui.d9c32a4c3dda')],
+        [t('app.sp.a52e665bd5'), t('ui.ce8b5ded230b')],
       ];
     }},
-    { id: 'printer', name: '打印机', rows: () => [
-      ['默认打印机', '由真实浏览器打印面板管理'],
-      ['打印系统', 'window.print() / PDF 下载'],
-      ['CUPS', '网页沙箱不公开打印队列与驱动'],
-      ['测试页', '可在“打印与传真”偏好设置中生成 PDF'],
+    { id: 'printer', name: t('ui.491f7e6d04fe'), rows: () => [
+      [t('ui.47505f07a973'), t('ui.00e77d62a4c1')],
+      [t('ui.c738b685a0a1'), t('ui.5e8155ab4749')],
+      ['CUPS', t('ui.ba0437415df0')],
+      [t('ui.c6283332cbb6'), t('ui.e0d8dfc69a49')],
     ]},
-    { id: 'diag', name: '诊断', rows: () => [
-      ['上次开机自检', '通过'],
-      ['WebGL 2 上下文', HW.webgl2 ? '通过' : '未通过（使用兼容路径）'],
-      ['本地存储读写', (() => { try { localStorage.setItem('__sprof_test','1'); localStorage.removeItem('__sprof_test'); return '通过'; } catch (error) { return '失败'; } })()],
-      ['安全上下文', window.isSecureContext ? '通过' : '警告：非安全上下文'],
-      ['JavaScript', '通过'],
+    { id: 'diag', name: t('app.sp.5232f2afb1'), rows: () => [
+      [t('app.sp.956e3c6b0d'), t('ui.dcc4233255ab')],
+      [t('ui.8d3a76134e91'), HW.webgl2 ? t('ui.dcc4233255ab') : t('ui.e37c86b0b77c')],
+      [t('ui.622a22e5bc07'), storageState().lastError ? t('app.sp.0428ab1962') : t('ui.dcc4233255ab')],
+      [t('app.sp.3a03b505d2'), window.isSecureContext ? t('ui.dcc4233255ab') : t('ui.db4d4d25202f')],
+      ['JavaScript', t('ui.dcc4233255ab')],
     ]},
-    { id: 'input', name: '输入设备', rows: () => [
-      ['指针类型', matchMedia('(pointer: fine)').matches ? '精确（鼠标/触控板）' : (matchMedia('(pointer: coarse)').matches ? '粗略（触屏）' : '未知')],
-      ['悬停能力', matchMedia('(hover: hover)').matches ? '支持' : '不支持'],
-      ['最大触控点', String(navigator.maxTouchPoints || 0)],
-      ['游戏手柄', (navigator.getGamepads ? navigator.getGamepads().filter(Boolean).length : 0) + ' 个已连接'],
-      ['剪贴板 API', navigator.clipboard ? '支持' : '不支持'],
+    { id: 'input', name: t('ui.c15e33676a95'), rows: () => [
+      [t('app.sp.2ea2776e39'), matchMedia('(pointer: fine)').matches ? t('ui.df26c3c7e5a0') : (matchMedia('(pointer: coarse)').matches ? t('ui.389db2661a31') : t('ui.d9c32a4c3dda'))],
+      [t('app.sp.1de3163c51'), matchMedia('(hover: hover)').matches ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
+      [t('app.sp3.de4d3036d21f'), String(navigator.maxTouchPoints || 0)],
+      [t('app.sp2.5b88ce4b64dc'), (navigator.getGamepads ? navigator.getGamepads().filter(Boolean).length : 0) + t('ui.fd124fd6655e')],
+      [t('ui.1abc4061bb5d'), navigator.clipboard ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
     ]},
-    { id: 'net', name: '网络', group: '网络', rows: () => {
+    { id: 'net', name: t('ui.0cbda6b52442'), group: t('ui.0cbda6b52442'), rows: () => {
       const c = navigator.connection || {};
       return [
-        ['状态', navigator.onLine ? '已连接' : '离线'],
-        ['接口', 'en0 (浏览器网络栈)'],
-        ['连接类型', c.effectiveType || '未知'],
-        ['下行带宽估计', c.downlink != null ? c.downlink + ' Mbps' : '未知'],
-        ['往返延迟估计', c.rtt != null ? c.rtt + ' ms' : '未知'],
-        ['省流量模式', c.saveData ? '开启' : '关闭'],
+        [t('ui.62e951a692ff'), navigator.onLine ? t('ui.65fe35c45e4e') : t('ui.211357d22f4d')],
+        [t('app.sp.c004aaee4d'), t('ui.381ff104acda')],
+        [t('ui.927ce3859763'), c.effectiveType || t('ui.d9c32a4c3dda')],
+        [t('app.sp3.1457673cd920'), c.downlink != null ? c.downlink + ' Mbps' : t('ui.d9c32a4c3dda')],
+        [t('app.sp3.6a1771420c90'), c.rtt != null ? c.rtt + ' ms' : t('ui.d9c32a4c3dda')],
+        [t('app.sp3.9ba132b6ca44'), c.saveData ? t('app.sp3.50f875f39a3d') : t('ui.6c14bd7f6f9e')],
       ];
     }},
-    { id: 'airport', name: 'AirPort', rows: () => {
+    { id: 'airport', name: t('app.sp.cf73f1d2ec'), rows: () => {
       const c = navigator.connection || {};
       return [
-        ['软件版本', 'AirPort 5.3.2-web'],
-        ['接口', 'en0'],
-        ['状态', navigator.onLine ? '已连接到 Leopard Web' : '关闭'],
-        ['PHY 模式', c.effectiveType ? `${c.effectiveType}（浏览器估计）` : '浏览器未公开'],
-        ['传输速率', c.downlink != null ? `${c.downlink} Mbps（估计）` : '浏览器未公开'],
-        ['信道', '浏览器未公开'],
-        ['国家/地区代码', (navigator.language || 'en-US').split('-')[1] || '—'],
+        [t('app.sp3.77c94818f4ae'), 'AirPort 5.3.2-web'],
+        [t('app.sp.c004aaee4d'), 'en0'],
+        [t('ui.62e951a692ff'), navigator.onLine ? t('ui.04c398fae7f1') : t('ui.6c14bd7f6f9e')],
+        [t('ui.f40bbc9f9432'), c.effectiveType ? `${c.effectiveType}（${t('app.sp4.253b5d87877f')}）` : t('app.sp.5b28bddd2b')],
+        [t('app.sp3.cf38f8ac8591'), c.downlink != null ? t('app.sp.mbps', { n: c.downlink }) : t('app.sp.5b28bddd2b')],
+        [t('app.sp3.ed93a00cf4be'), t('app.sp.5b28bddd2b')],
+        [t('app.sp3.ac4564ce86ea'), (navigator.language || 'en-US').split('-')[1] || '—'],
       ];
     }},
-    { id: 'ethernet', name: '以太网卡', rows: () => {
+    { id: 'ethernet', name: t('app.sp3.925816d0424d'), rows: () => {
       const c = navigator.connection || {};
       return [
-        ['接口', 'en1（兼容显示）'],
-        ['设备名称', '浏览器网络适配器'],
-        ['状态', c.type === 'ethernet' && navigator.onLine ? '已连接' : '未检测到独立以太网连接'],
-        ['MAC 地址', '浏览器隐私沙箱不公开'],
-        ['IPv4 配置', navigator.onLine ? '由宿主系统管理（网页不可读取）' : '未配置'],
-        ['IPv6 配置', '由宿主系统管理（网页不可读取）'],
-        ['速度', c.downlink != null ? `${c.downlink} Mbps（浏览器估计）` : '未知'],
+        [t('app.sp.c004aaee4d'), t('ui.8ebc731b7ad9')],
+        [t('ui.4433eb13beca'), t('ui.c8a57c1ff5cf')],
+        [t('ui.62e951a692ff'), c.type === 'ethernet' && navigator.onLine ? t('ui.65fe35c45e4e') : t('ui.0967d58cecc3')],
+        [t('ui.7ce1990f3fa5'), t('app.sp2.593cccf62c6a')],
+        [t('ui.8ac9fb2e418c'), navigator.onLine ? t('ui.e61d7c03a7ab') : t('app.sp.6e77e340d1')],
+        [t('ui.e8cd45074696'), t('ui.e61d7c03a7ab')],
+        [t('ui.f2fdffbb9ed5'), c.downlink != null ? `${c.downlink} Mbps（${t('app.sp4.253b5d87877f')}）` : t('ui.d9c32a4c3dda')],
       ];
     }},
-    { id: 'modems', name: '调制解调器', rows: () => [
-      ['外置调制解调器', '未检测到'],
-      ['内建调制解调器', '此 Mac 没有内建调制解调器'],
-      ['说明', '浏览器不公开串行端口、拨号连接或运营商配置'],
+    { id: 'modems', name: t('app.sp3.6d31072d300e'), rows: () => [
+      [t('app.sp3.3e52f265afc6'), t('app.sp.3d6ed55d54')],
+      [t('app.sp3.75c0e196af6e'), t('ui.aa7c0b9e326b')],
+      [t('app.sp.51c40d04d8'), t('ui.4a878ed33a6a')],
     ]},
-    { id: 'locations', name: '位置', rows: () => [
-      ['自动', 'AirPort：Leopard Web；以太网：未连接'],
-      ['家庭', 'AirPort：首选；代理：关闭'],
-      ['工作', '以太网：DHCP；AirPort：备用'],
-      ['当前活动位置', localStorage.getItem('macweb.network.location') || '自动'],
+    { id: 'locations', name: t('ui.88c34452cc46'), rows: () => [
+      [t('app.sp2.33f49f21ebb5'), t('ui.acd877a9a247')],
+      [t('app.sp3.8024b5daef71'), t('ui.7984dca86e9a')],
+      [t('app.sp.3e8175a133'), t('ui.dec2ab2c773b')],
+      [t('ui.7212581aae75'), localStorage.getItem('macweb.network.location') || t('app.sp2.33f49f21ebb5')],
     ]},
-    { id: 'firewall', name: '防火墙', rows: () => [
-      ['应用程序防火墙', '由宿主操作系统与浏览器负责'],
-      ['安全上下文', window.isSecureContext ? '安全 (HTTPS/localhost)' : '不安全'],
-      ['同源策略', '已启用'],
-      ['第三方框架限制', '遵循目标站点 CSP / X-Frame-Options'],
-      ['Cookie', navigator.cookieEnabled ? '允许（受浏览器策略限制）' : '停用'],
+    { id: 'firewall', name: t('app.sp3.3a94156c566d'), rows: () => [
+      [t('ui.26bbd7400aeb'), t('ui.dd12bd0f07c1')],
+      [t('app.sp.3a03b505d2'), window.isSecureContext ? t('ui.0014ec3f621b') : t('app.sp3.b375acaec580')],
+      [t('app.sp3.b381e38da284'), t('ui.25d284315063')],
+      [t('app.sp3.fbb5b6b12786'), t('ui.f6032b7ba92b')],
+      ['Cookie', navigator.cookieEnabled ? t('ui.c083cdf1f733') : t('ui.d989e55188c9')],
     ]},
-    { id: 'locale', name: '区域与语言', rows: () => {
+    { id: 'locale', name: t('app.sp4.2326c9d88310'), rows: () => {
       const dtf = Intl.DateTimeFormat().resolvedOptions();
       return [
-        ['首选语言', HW.lang],
-        ['语言列表', (navigator.languages || []).join(', ')],
-        ['时区', dtf.timeZone],
-        ['UTC 偏移', 'UTC' + (new Date().getTimezoneOffset() <= 0 ? '+' : '−') + Math.abs(new Date().getTimezoneOffset() / 60)],
-        ['日历', dtf.calendar],
-        ['数字系统', dtf.numberingSystem],
+        [t('app.sp4.d5f80c06438c'), HW.lang],
+        [t('app.sp4.10540dec22f8'), (navigator.languages || []).join(', ')],
+        [t('app.sp4.ed71b1a310d6'), dtf.timeZone],
+        [t('ui.215e70fc5a20'), 'UTC' + (new Date().getTimezoneOffset() <= 0 ? '+' : '−') + Math.abs(new Date().getTimezoneOffset() / 60)],
+        [t('app.sp.4869cd73ae'), dtf.calendar],
+        [t('ui.a25fec2eb994'), dtf.numberingSystem],
       ];
     }},
-    { id: 'sw', name: '软件', group: '软件', rows: () => {
+    { id: 'sw', name: t('app.sp.3b97803425'), group: t('app.sp.3b97803425'), rows: () => {
       const brands = navigator.userAgentData && navigator.userAgentData.brands
         ? navigator.userAgentData.brands.map((b) => `${b.brand} ${b.version}`).join(' · ') : null;
       return [
-        ['系统版本', 'Mac OS X 10.5 Leopard (Web) Build 9A581-www'],
-        ['内核版本', 'Darwin 9.8.0 (JavaScript)'],
-        ['开机时间', System.uptimeStr()],
-        ['窗口尺寸', `${innerWidth} × ${innerHeight}`],
-        ['Cookie', navigator.cookieEnabled ? '已启用' : '已停用'],
-        ['内建 PDF 查看器', navigator.pdfViewerEnabled ? '有' : '无'],
-        ['自动化控制 (webdriver)', navigator.webdriver ? '是' : '否'],
-        ...(brands ? [['浏览器标识', brands]] : []),
+        [t('ui.735f889efbfd'), 'Mac OS X 10.5 Leopard (Web) Build 9A581-www'],
+        [t('app.sp4.38677567c787'), 'Darwin 9.8.0 (JavaScript)'],
+        [t('app.sp.boot'), System.uptimeStr()],
+        [t('app.sp4.43c7a1398374'), `${innerWidth} × ${innerHeight}`],
+        ['Cookie', navigator.cookieEnabled ? t('ui.25d284315063') : t('ui.6c7dcbb73a59')],
+        [t('ui.1f68ac558b30'), navigator.pdfViewerEnabled ? t('app.sp4.c484ab79e99b') : t('ui.72077749f794')],
+        [t('ui.87fb54b26e99'), navigator.webdriver ? t('app.sp2.527e1483d880') : t('app.sp2.efd9e5128a0c')],
+        ...(brands ? [[t('app.sp4.e17964d9daa3'), brands]] : []),
         ['User-Agent', HW.ua],
       ];
     }},
-    { id: 'developer', name: '开发者', rows: () => [
-      ['JavaScript', 'ECMAScript 模块 · 已启用'],
-      ['WebAssembly', typeof WebAssembly === 'object' ? '支持' : '不支持'],
-      ['Service Worker', 'serviceWorker' in navigator ? '支持（当前系统未注册）' : '不支持'],
-      ['IndexedDB', window.indexedDB ? '支持' : '不支持'],
-      ['WebGL 2', HW.webgl2 ? '支持' : '不支持'],
-      ['Web Audio', (window.AudioContext || window.webkitAudioContext) ? '支持' : '不支持'],
-      ['安全上下文', window.isSecureContext ? '是' : '否'],
-      ['构建标识', 'Leopard Web 9A581-www'],
+    { id: 'developer', name: t('app.sp4.fae4004f94e1'), rows: () => [
+      ['JavaScript', t('ui.86f5614c376c')],
+      ['WebAssembly', typeof WebAssembly === 'object' ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
+      ['Service Worker', !('serviceWorker' in navigator) ? t('ui.ef8274b96890') : navigator.serviceWorker.controller ? t('ui.a9aab15d0126') : t('ui.fbb34edf901c')],
+      ['IndexedDB', window.indexedDB ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
+      ['WebGL 2', HW.webgl2 ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
+      ['Web Audio', (window.AudioContext || window.webkitAudioContext) ? t('ui.a9aab15d0126') : t('ui.ef8274b96890')],
+      [t('app.sp.3a03b505d2'), window.isSecureContext ? t('app.sp2.527e1483d880') : t('app.sp2.efd9e5128a0c')],
+      [t('app.sp4.092cbc0d5ece'), 'Leopard Web 9A581-www'],
     ]},
-    { id: 'accessibility', name: '辅助技术', rows: () => [
-      ['VoiceOver 实用工具', 'Leopard Web 内建'],
-      ['减少动态效果', matchMedia('(prefers-reduced-motion: reduce)').matches ? '用户已请求' : '未请求'],
-      ['增强对比度', matchMedia('(prefers-contrast: more)').matches ? '用户已请求' : '未请求或浏览器不公开'],
-      ['强制颜色', matchMedia('(forced-colors: active)').matches ? '已启用' : '未启用'],
-      ['键盘导航', '支持菜单、窗口、Aqua 面板和应用程序控件'],
-      ['屏幕阅读器状态', '浏览器隐私沙箱不公开'],
+    { id: 'accessibility', name: t('app.sp4.66445c55461d'), rows: () => [
+      [t('ui.0ff170f1fc28'), t('ui.ee3e404454ac')],
+      [t('app.sp4.6e94ed15d7d3'), matchMedia('(prefers-reduced-motion: reduce)').matches ? t('ui.ad9f7873a498') : t('app.sp.notOn')],
+      [t('app.sp4.5bea2ab19fcb'), matchMedia('(prefers-contrast: more)').matches ? t('ui.ad9f7873a498') : t('app.sp.notOrHidden')],
+      [t('app.sp.forced'), matchMedia('(forced-colors: active)').matches ? t('ui.25d284315063') : t('app.sp4.9392eded737b')],
+      [t('ui.6b8c09125a01'), t('ui.14d8b9ac1850')],
+      [t('ui.2a46ad86300d'), t('app.sp2.593cccf62c6a')],
     ]},
-    { id: 'apps', name: '应用程序', rows: () => Object.values(System.apps).map((a) => [a.name, `${a.id} · 1.0 (Web)${a.windows.length ? ' — 正在运行' : ''}`]) },
-    { id: 'kext', name: '扩展', rows: () => Kexts.list().map((k) => [k.name, `${k.loaded ? '✅ 已装载' : '⬜ 未装载'} · v${k.ver} — ${k.desc}`]) },
-    { id: 'fonts', name: '字体', rows: async () => {
+    { id: 'apps', name: t('ui.8a443802664a'), rows: () => Object.values(System.apps).map((a) => [a.name, `${a.id} · 1.0 (Web)${a.windows.length ? ` — ${t('app.sp3.b27c633da0f1')}` : ''}`]) },
+    { id: 'kext', name: t('app.sp4.71e68a391356'), rows: () => Kexts.list().map((k) => [k.name, `${k.loaded ? t('ui.8f7ae8b9551d') : t('ui.6a73084a7fc2')} · v${k.ver} — ${k.desc}`]) },
+    { id: 'fonts', name: t('ui.b50d4d8352f5'), rows: async () => {
       const families = ['Lucida Grande','Helvetica','Arial','Times New Roman','Georgia','Monaco','Courier New','PingFang SC','Hiragino Sans GB','Songti SC'];
       if (document.fonts?.ready) await document.fonts.ready;
-      return families.map((family) => [family, document.fonts?.check(`12px "${family}"`) ? '可用' : '不可用']);
+      return families.map((family) => [family, document.fonts?.check(`12px "${family}"`) ? t('ui.e91365cf9ed9') : t('ui.beff4a1cd1a6')]);
     }},
     { id: 'frameworks', name: 'Frameworks', rows: () => [
-      ['Aqua.framework', 'CSS 视觉层 · 已载入'],
-      ['AppKit.framework', 'System 窗口管理 · 已载入'],
+      ['Aqua.framework', t('ui.fdb1999c98ea')],
+      ['AppKit.framework', t('ui.a967464d361b')],
       ['CoreGraphics.framework', `Canvas 2D / ${HW.graphicsApi}`],
       ['WebKit.framework', navigator.userAgent],
-      ['WebAudio.framework', (window.AudioContext || window.webkitAudioContext) ? '已载入' : '不可用'],
-      ['MediaDevices.framework', navigator.mediaDevices ? '已载入' : '不可用'],
+      ['WebAudio.framework', (window.AudioContext || window.webkitAudioContext) ? t('app.sp2.7497cc4933eb') : t('ui.beff4a1cd1a6')],
+      ['MediaDevices.framework', navigator.mediaDevices ? t('app.sp2.7497cc4933eb') : t('ui.beff4a1cd1a6')],
     ]},
-    { id: 'prefpanes', name: '偏好设置面板', rows: () => [
-      ['个人', '外观、桌面与屏幕保护程序、Dock、Exposé 与 Spaces、多语言环境、安全性、Spotlight'],
-      ['硬件', 'CD 与 DVD、显示器、节能器、键盘与鼠标、打印与传真、声音'],
-      ['互联网与无线', '.Mac、网络、Bluetooth、共享'],
-      ['系统', '帐户、日期与时间、家长控制、软件更新、语音、Time Machine、万能辅助'],
+    { id: 'prefpanes', name: t('app.sp4.308a5f36794f'), rows: () => [
+      [t('ui.2d7c0c32a376'), t('ui.1b3a153419db')],
+      [t('ui.b4cd99b8d4f1'), t('ui.a2cfbc9d5a05')],
+      [t('ui.2e1812ee6733'), t('ui.5349c3e6dbf1')],
+      [t('ui.1a1f6dff7826'), t('ui.9004b4c48cca')],
     ]},
-    { id: 'startup', name: '启动项目', rows: () => [
-      ['Finder', '已启动 · 桌面与文件系统'],
-      ['Dock', '已启动 · 应用程序切换与 Stacks'],
-      ['SystemUIServer', '已启动 · 菜单栏状态项目'],
-      ['Spotlight', '已启动 · 本地 VFS 索引'],
-      ['Dashboard', localStorage.getItem('macweb.dashboard.disabled') === '1' ? '已停用' : '可用'],
+    { id: 'startup', name: t('ui.9f87973b5b54'), rows: () => [
+      ['Finder', t('ui.32560b43a8ce')],
+      ['Dock', t('ui.fa097a6ee02c')],
+      ['SystemUIServer', t('ui.18b58e783ab2')],
+      ['Spotlight', t('ui.7e5249473575')],
+      ['Dashboard', localStorage.getItem('macweb.dashboard.disabled') === '1' ? t('ui.6c7dcbb73a59') : t('ui.e91365cf9ed9')],
     ]},
     { id: 'syncservices', name: 'SyncServices', rows: () => [
-      ['同步服务', 'Leopard Web 本地事件总线'],
-      ['通讯录与 iCal', '生日字段可同步到生日历'],
-      ['Finder 与桌面', '共享同一虚拟文件系统'],
-      ['应用程序偏好设置', '更改会实时广播给已打开的应用程序'],
-      ['云端同步', '未配置；数据保留在当前浏览器来源中'],
+      [t('ui.4c8a2cb5753a'), t('ui.d8a908bacbb6')],
+      [t('ui.e93d32ec1b56'), t('ui.37d6f622bb0b')],
+      [t('ui.89a8a85afe26'), t('ui.c5bb69bf4449')],
+      [t('ui.b5279b76c19e'), t('ui.ed6972398363')],
+      [t('ui.88f8222fda95'), t('app.sp.notConfigured')],
     ]},
-    { id: 'installations', name: '安装项目', rows: () => [
-      ['Mac OS X Leopard Web', '9A581-www · 当前构建'],
-      ['Leopard 应用程序组件', `${Object.keys(System.apps).length} 个应用已注册`],
-      ['虚拟 Macintosh HD', '首次启动时创建 · localStorage'],
-      ['用户内容', '由 Finder、Photo Booth、TextEdit 与打印功能生成'],
+    { id: 'installations', name: t('ui.2b1a3dc8913e'), rows: () => [
+      ['Mac OS X Leopard Web', t('ui.09f996ecbfd3')],
+      [t('ui.5e8a30ef0f7b'), t('app.sp.appsReg', { n: Object.keys(System.apps).length })],
+      [t('ui.8e71f2638d85'), t('ui.d7a62045a7f9')],
+      [t('ui.d323ac71c923'), t('ui.e19cdf0e6387')],
     ]},
-    { id: 'log', name: '日志', rows: () => System.syslogBuf.slice(-14).map((l) => [l.ts, `[${l.src}] ${l.msg}`]) },
+    { id: 'log', name: t('app.sp4.701d28132315'), rows: () => System.syslogBuf.slice(-14).map((l) => [l.ts, `[${l.src}] ${l.msg}`]) },
   ];
 
   function open() {
@@ -361,11 +391,11 @@
     const side = el('div', 'sprof-side');
     const main = el('div', 'sprof-main');
     const toolbar = el('div', 'sprof-toolbar');
-    const refresh = el('button', 'finder-toolbar-btn', '刷新');
-    const copy = el('button', 'finder-toolbar-btn', '拷贝');
-    const save = el('button', 'finder-toolbar-btn', '存储…');
+    const refresh = el('button', 'finder-toolbar-btn', t('ui.38108eaa1d32'));
+    const copy = el('button', 'finder-toolbar-btn', t('ui.bc6d0279b622'));
+    const save = el('button', 'finder-toolbar-btn', t('ui.359721eae599'));
     const search = el('input', 'aqua-input aqua-search');
-    search.placeholder = '筛选报告';
+    search.placeholder = t('app.sp4.3e248bdc0136');
     toolbar.append(refresh, copy, save, search);
 
     let cur = 'hw';
@@ -381,16 +411,16 @@
       const sec = SECTIONS.find((s) => s.id === cur);
       main.innerHTML = '';
       const loadingHead = el('header', 'sprof-section-head');
-      loadingHead.innerHTML = `<div class="sprof-section-icon">i</div><div><h2>${sec.name}</h2><p>正在收集数据…</p></div>`;
+      loadingHead.innerHTML = `<div class="sprof-section-icon">i</div><div><h2>${sec.name}</h2><p>${t('app.sp4.0849c4ad5c09')}</p></div>`;
       main.appendChild(loadingHead);
       const rows = await sec.rows();
       if (version !== renderVersion) return;
       currentRows = rows;
       main.innerHTML = '';
       const header = el('header', 'sprof-section-head');
-      const badge = el('div', 'sprof-section-icon', sec.group === '硬件' || ['hw','gpu','mem','storage','audio','ata','usb','bluetooth','firewire','disc','printer','diag','battery','input'].includes(sec.id) ? '⌘' : sec.group === '网络' || ['net','airport','locations','firewall','locale'].includes(sec.id) ? '⌁' : 'i');
+      const badge = el('div', 'sprof-section-icon', sec.group === t('ui.b4cd99b8d4f1') || ['hw','gpu','mem','storage','audio','ata','usb','bluetooth','firewire','disc','printer','diag','battery','input'].includes(sec.id) ? '⌘' : sec.group === t('ui.0cbda6b52442') || ['net','airport','locations','firewall','locale'].includes(sec.id) ? '⌁' : 'i');
       const heading = el('div');
-      heading.append(el('h2', '', sec.name), el('p', '', `${rows.length} 项资料 · ${sec.group || '详细资料'}`));
+      heading.append(el('h2', '', sec.name), el('p', '', t('app.sp.rowMeta', { n: rows.length, group: sec.group || t('app.sp.detail') })));
       header.append(badge, heading);
       main.appendChild(header);
       const table = el('table', 'sprof-table');
@@ -403,7 +433,7 @@
       });
       main.appendChild(table);
       side.querySelectorAll('.sprof-item').forEach((s) => s.classList.toggle('sel', s.dataset.id === cur));
-      if (win) win.querySelector('.win-statusbar').textContent = `${sec.name} · ${rows.length} 项 · 可拷贝或存储为完整 .spx 报告`;
+      if (win) win.querySelector('.win-statusbar').textContent = t('app.sp.statusFmt', { sec: sec.name, n: rows.length });
     }
 
     let groupBody = null;
@@ -442,15 +472,15 @@
     copy.addEventListener('click', async () => {
       try {
         await navigator.clipboard.writeText(sectionText());
-        Leopard.toast('系统报告', '当前部分已经拷贝到剪贴板。');
+        Leopard.toast(t('ui.d79f8ee9cc4a'), t('ui.321c395405dd'));
       } catch (error) {
-        System.alertBox('系统报告', '浏览器没有授予剪贴板写入权限。');
+        System.alertBox(t('ui.d79f8ee9cc4a'), t('ui.46bb25e07540'));
       }
     });
     save.addEventListener('click', async () => {
       const endBusy = System.beginBusy(160);
       const originalStatus = win.querySelector('.win-statusbar').textContent;
-      win.querySelector('.win-statusbar').textContent = '正在收集完整系统报告…';
+      win.querySelector('.win-statusbar').textContent = t('ui.39821d19984c');
       try {
         let group = '';
         const report = [];
@@ -458,7 +488,7 @@
           if (section.group) group = section.group;
           let rows;
           try { rows = await section.rows(); }
-          catch (error) { rows = [['收集错误', error?.message || '未知错误']]; }
+          catch (error) { rows = [[t('ui.8ecc7d04f396'), error?.message || t('ui.5f76edc5de7b')]]; }
           report.push({ group, name:section.name, rows });
         }
         const xmlEscape = (value) => String(value)
@@ -483,11 +513,9 @@ ${sectionsXml}
 </array></dict></plist>`;
         System.savePanel({
           parent:win,
-          title:'存储系统报告',
-          startPath:'/用户/roll/文稿',
-          name:`${HW.model} 系统报告.spx`,
-          extension:'spx',
-          typeLabel:'System Profiler 报告',
+          title:t('app.sp4.bfb9362411fa'),
+          startPath:paths.documents, extension:'spx',
+          typeLabel:t('app.sp4.33b2529b0e9f'),
           allowOverwrite:true,
           onSave:(path)=>{
             const saved = VFS.putNode(path, {
@@ -495,7 +523,7 @@ ${sectionsXml}
               mime:'application/x-apple-systemprofiler+xml',
               creator:'sysprofiler', generated:true, createdAt:generatedAt,
             });
-            if(saved) Leopard.toast('系统报告', `“${VFS.baseName(path)}”已存储，可在 Finder 中下载。`);
+            if(saved) Leopard.toast(t('ui.d79f8ee9cc4a'), t('app.sp.saved', { name: VFS.baseName(path) }));
             return saved;
           },
         });
@@ -527,13 +555,13 @@ ${sectionsXml}
       });
     });
 
-    win = System.createWindow({ app: 'sysprofiler', title: `${HW.model} — 系统报告`, width: 850, height: 590, toolbar, content: layout, statusbar: '正在收集浏览器与虚拟硬件资料…' });
+    win = System.createWindow({ app: 'sysprofiler', title: `${HW.model} — ${t('app.sp4.19063fc48f9f')}`, width: 850, height: 590, toolbar, content: layout, statusbar: t('app.sp.collecting') });
     render();
   }
 
   System.registerApp({
-    id: 'sysprofiler', name: '系统报告', icon, open,
-    about: 'Leopard 风格完整分类报告：硬件、GPU/WebGL、设备、电源、存储、网络、安全、软件、字体、扩展与日志；真实浏览器资料和虚拟硬件会明确区分。',
-    keywords: 'profiler 系统报告 硬件 信息 about',
+    id: 'sysprofiler', name: t('ui.d79f8ee9cc4a'), icon, open,
+    about: t('app.sp.about2'),
+    keywords: t('app.sp.keywords'),
   });
 })();

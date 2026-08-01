@@ -1,3 +1,9 @@
+import { System } from '../system/index.js';
+import { VFS } from '../vfs.js';
+import { Leopard } from '../leopard.js';
+import { paths } from '../config.js';
+import { t } from '../i18n/index.js';
+
 // 活动监视器 (Activity Monitor) — live processes and browser-observable resources
 (() => {
   const { el } = System;
@@ -31,47 +37,47 @@
     if (bytes < 1073741824) return `${(bytes / 1048576).toFixed(1)} MB`;
     return `${(bytes / 1073741824).toFixed(2)} GB`;
   };
-  const formatRate = (value) => `${formatBytes(value)}/秒`;
+  const formatRate = (value) => t('app.am.perSec', { v: formatBytes(value) });
 
   function open() {
     const toolbar = el('div', 'activity-toolbar');
-    const inspectButton = el('button', 'finder-toolbar-btn activity-inspect', 'ⓘ 检查');
-    const quitButton = el('button', 'finder-toolbar-btn activity-quit', '⛔ 退出进程');
-    const sampleButton = el('button', 'finder-toolbar-btn activity-sample', '⚙ 样本');
+    const inspectButton = el('button', 'finder-toolbar-btn activity-inspect', t('app.am2.a16166bda870'));
+    const quitButton = el('button', 'finder-toolbar-btn activity-quit', t('ui.a2a801c9d86f'));
+    const sampleButton = el('button', 'finder-toolbar-btn activity-sample', t('app.am2.743d504e45a7'));
     const toolbarSpacer = el('i');
     const scope = el('select', 'activity-scope');
-    scope.setAttribute('aria-label', '显示进程');
-    scope.innerHTML = '<option value="all">所有进程</option><option value="my">我的进程</option><option value="active">活动进程</option><option value="windowed">窗口化进程</option>';
+    scope.setAttribute('aria-label', t('ui.0909a4387fc0'));
+    scope.innerHTML = `<option value="all">${t('app.am2.a473cb2df452')}</option><option value="my">${t('app.am2.fc05c641cbcd')}</option><option value="active">${t('app.am2.c38dbad2993f')}</option><option value="windowed">${t('app.am2.803cc5a9f752')}</option>`;
     const search = el('input', 'aqua-search activity-search');
     search.type = 'search';
-    search.placeholder = '过滤器';
-    search.setAttribute('aria-label', '过滤进程');
+    search.placeholder = t('app.am2.71b73f8317bb');
+    search.setAttribute('aria-label', t('app.am2.d2a2feaa472f'));
     toolbar.append(quitButton, inspectButton, sampleButton, toolbarSpacer, scope, search);
 
     const root = el('div', 'activity-app');
     root.innerHTML = `<section class="activity-process-table">
       <header class="activity-columns" role="row">
         <button data-sort="pid" class="c-pid">PID</button>
-        <button data-sort="name" class="c-name">进程名称</button>
-        <button data-sort="user" class="c-user">用户</button>
+        <button data-sort="name" class="c-name">${t('app.am2.04d5749828b9')}</button>
+        <button data-sort="user" class="c-user">${t('app.am2.c243a88c43c0')}</button>
         <button data-sort="cpu" class="c-cpu">% CPU</button>
-        <button data-sort="threads" class="c-threads">线程</button>
-        <button data-sort="memory" class="c-memory">实际内存</button>
-        <button data-sort="kind" class="c-kind">种类</button>
+        <button data-sort="threads" class="c-threads">${t('app.am2.488d6314600a')}</button>
+        <button data-sort="memory" class="c-memory">${t('app.am2.a76d2e48c015')}</button>
+        <button data-sort="kind" class="c-kind">${t('app.am.5db6a8cad0')}</button>
       </header>
-      <div class="activity-process-body" role="listbox" aria-label="进程" tabindex="0"></div>
+      <div class="activity-process-body" role="listbox" aria-label="${t('app.am2.ee2ea34ae574')}" tabindex="0"></div>
     </section>
     <footer class="activity-resources">
-      <nav class="activity-resource-tabs" aria-label="资源类别">
+      <nav class="activity-resource-tabs" aria-label="${t('app.am2.ac49c781217a')}">
         <button data-resource="cpu">CPU</button>
-        <button data-resource="memory">系统内存</button>
-        <button data-resource="diskactivity">磁盘活动</button>
-        <button data-resource="diskusage">磁盘使用情况</button>
-        <button data-resource="network">网络</button>
+        <button data-resource="memory">${t('app.am2.25a1d81cf26e')}</button>
+        <button data-resource="diskactivity">${t('app.am2.5f5787cf514a')}</button>
+        <button data-resource="diskusage">${t('app.am2.b576a604588e')}</button>
+        <button data-resource="network">${t('app.am.63bfa69d42')}</button>
       </nav>
       <section class="activity-resource-panel">
         <div class="activity-resource-stats"></div>
-        <div class="activity-chart-wrap"><canvas class="activity-chart" aria-label="资源历史图表"></canvas></div>
+        <div class="activity-chart-wrap"><canvas class="activity-chart" aria-label="${t('app.am2.0341d804ee0c')}"></canvas></div>
       </section>
     </footer>`;
     const processBody = root.querySelector('.activity-process-body');
@@ -188,7 +194,7 @@
           ...process,
           cpu:clamp(cpu, 0, 100),
           memoryBytes:process.memory * 1048576,
-          kind:'Intel（64 位）',
+          kind:t('ui.7d2ce3d54d36'),
           system:true,
           protected:true,
           front:process.name === 'Finder' && frontWindow?.dataset.app === 'finder',
@@ -216,7 +222,7 @@
           threads:Math.max(3, 2 + windows.length * 2 + Math.round(domNodes / 180)),
           memoryBytes,
           memory:memoryBytes / 1048576,
-          kind:'Intel（64 位）',
+          kind:t('ui.7d2ce3d54d36'),
           parent:'launchd',
           path:`/应用程序/${app.name}.app/Contents/MacOS/${app.id}`,
           appId:app.id,
@@ -323,7 +329,7 @@
       const scrollTop = processBody.scrollTop;
       processBody.innerHTML = '';
       if (!visibleProcesses.length) {
-        const empty = el('p', 'activity-empty', '没有符合条件的进程。');
+        const empty = el('p', 'activity-empty', t('ui.42181e723413'));
         processBody.appendChild(empty);
       } else {
         visibleProcesses.forEach((process) => {
@@ -333,7 +339,7 @@
           row.setAttribute('role', 'option');
           row.setAttribute('aria-selected', String(process.pid === selectedPid));
           row.title = `${process.name} — PID ${process.pid}`;
-          row.innerHTML = `<span class="c-pid">${process.pid}</span><span class="c-name">${escapeHtml(process.name)}${process.front ? '<i>活动</i>' : ''}</span><span class="c-user">${escapeHtml(process.user)}</span><span class="c-cpu">${process.cpu.toFixed(1)}</span><span class="c-threads">${process.threads}</span><span class="c-memory">${formatBytes(process.memoryBytes)}</span><span class="c-kind">${escapeHtml(process.kind)}</span>`;
+          row.innerHTML = `<span class="c-pid">${process.pid}</span><span class="c-name">${escapeHtml(process.name)}${process.front ? `<i>${t('app.am2.7c182337cd47')}</i>` : ''}</span><span class="c-user">${escapeHtml(process.user)}</span><span class="c-cpu">${process.cpu.toFixed(1)}</span><span class="c-threads">${process.threads}</span><span class="c-memory">${formatBytes(process.memoryBytes)}</span><span class="c-kind">${escapeHtml(process.kind)}</span>`;
           row.addEventListener('click', () => selectProcess(process.pid));
           row.addEventListener('dblclick', () => showInspector(process.pid));
           processBody.appendChild(row);
@@ -353,81 +359,81 @@
       quitButton.disabled = !process?.appId || !!process.protected;
       if (win) {
         const statusbar = win.querySelector('.win-statusbar');
-        if (statusbar) statusbar.textContent = `${visibleProcesses.length} 个进程（共 ${currentProcesses.length} 个） · 浏览器可观测资源`;
+        if (statusbar) statusbar.textContent = t('app.am.status2', { v: visibleProcesses.length, t: currentProcesses.length, cpu: '' });
       }
       updateWindowState();
     };
 
     const resourceDefinition = () => {
       if (resource === 'memory') return {
-        title:'系统内存',
-        legend:[['应用程序内存','#35a35b'],['联动内存','#e3a23c']],
+        title:t('ui.5022cccb3e8c'),
+        legend:[[t('ui.e678238d3a57'),'#35a35b'],[t('app.am2.2a3460bc5871'),'#e3a23c']],
         maximum:Math.max(metrics.heapLimit, 1),
         stats:[
-          ['应用程序内存',formatBytes(metrics.heapUsed),'green'],
-          ['联动内存',formatBytes(metrics.heapUsed * .22),'orange'],
-          ['可用 JS 堆',formatBytes(Math.max(0, metrics.heapLimit - metrics.heapUsed)),''],
-          ['JS 堆限制',formatBytes(metrics.heapLimit),''],
-          ['页面存储',formatBytes(storageUsage),''],
-          ['内存压力',metrics.heapUsed / metrics.heapLimit > .75 ? '高' : metrics.heapUsed / metrics.heapLimit > .5 ? '中等' : '正常','green'],
+          [t('ui.e678238d3a57'),formatBytes(metrics.heapUsed),'green'],
+          [t('app.am2.2a3460bc5871'),formatBytes(metrics.heapUsed * .22),'orange'],
+          [t('ui.603039ccfdd4'),formatBytes(Math.max(0, metrics.heapLimit - metrics.heapUsed)),''],
+          [t('app.am2.90a106549853'),formatBytes(metrics.heapLimit),''],
+          [t('ui.e5a7bb4149e0'),formatBytes(storageUsage),''],
+          [t('app.am2.6ee36f563b43'),metrics.heapUsed / metrics.heapLimit > .75 ? t('app.am.ab84c9d4ea') : metrics.heapUsed / metrics.heapLimit > .5 ? t('app.am2.2979261eddc3') : t('app.am2.fa66e8632694'),'green'],
         ],
       };
       if (resource === 'diskactivity') {
         const values = histories.diskactivity.flatMap((value) => [value.a, value.b]);
         return {
-          title:'磁盘活动',
-          legend:[['读取','#3f8ac7'],['写入','#d65a55']],
+          title:t('app.am2.5f5787cf514a'),
+          legend:[[t('ui.b6b97ac60d5d'),'#3f8ac7'],[t('ui.9e93bdccb257'),'#d65a55']],
           maximum:Math.max(1024, ...values) * 1.15,
           stats:[
-            ['读取/秒',formatRate(metrics.diskReadRate),'blue'],
-            ['写入/秒',formatRate(metrics.diskWriteRate),'red'],
-            ['已读取数据',formatBytes(diskBytesRead),''],
-            ['已写入数据',formatBytes(diskBytesWritten),''],
-            ['文件',String(metrics.files),''],
-            ['文件夹',String(metrics.folders),''],
+            [t('app.am2.2c2a88bdeb7d'),formatRate(metrics.diskReadRate),'blue'],
+            [t('app.am2.2081cc105002'),formatRate(metrics.diskWriteRate),'red'],
+            [t('app.am2.202d1abd5bb3'),formatBytes(diskBytesRead),''],
+            [t('app.am2.b57e595f6a83'),formatBytes(diskBytesWritten),''],
+            [t('ui.49deaf7da20d'),String(metrics.files),''],
+            [t('ui.46ecac29102a'),String(metrics.folders),''],
           ],
         };
       }
       if (resource === 'diskusage') return {
-        title:'磁盘使用情况',
-        legend:[['浏览器存储','#4d87c1'],['虚拟磁盘文件','#8fb052']],
+        title:t('app.am2.b576a604588e'),
+        legend:[[t('ui.59dc9eb13477'),'#4d87c1'],[t('ui.0c83fc1bc7e1'),'#8fb052']],
         maximum:Math.max(storageQuota, storageUsage, metrics.vfsBytes, 1),
         stats:[
-          ['已使用空间',formatBytes(storageUsage),'blue'],
-          ['可用空间',formatBytes(Math.max(0, storageQuota - storageUsage)),'green'],
-          ['容量',formatBytes(storageQuota),''],
-          ['虚拟文件数据',formatBytes(metrics.vfsBytes),''],
-          ['文件',String(metrics.files),''],
-          ['文件夹',String(metrics.folders),''],
+          [t('app.am2.1e9a5357f3f1'),formatBytes(storageUsage),'blue'],
+          [t('ui.4981f67ab1d9'),formatBytes(Math.max(0, storageQuota - storageUsage)),'green'],
+          [t('app.am2.4d12bfae2c33'),formatBytes(storageQuota),''],
+          [t('ui.9c7b9ed62256'),formatBytes(metrics.vfsBytes),''],
+          [t('ui.49deaf7da20d'),String(metrics.files),''],
+          [t('ui.46ecac29102a'),String(metrics.folders),''],
         ],
       };
       if (resource === 'network') {
         const values = histories.network.flatMap((value) => [value.a, value.b]);
         return {
-          title:'网络',
-          legend:[['接收','#3f9d63'],['发送','#d36a45']],
+          title:t('ui.0cbda6b52442'),
+          legend:[[t('ui.de7b4c9eebf8'),'#3f9d63'],[t('ui.1214d633a448'),'#d36a45']],
           maximum:Math.max(1024, ...values) * 1.15,
           stats:[
-            ['接收/秒',formatRate(metrics.networkInRate),'green'],
-            ['发送/秒',formatRate(metrics.networkOutRate),'orange'],
-            ['已接收数据',formatBytes(networkBytesReceived),''],
-            ['已发送数据',formatBytes(networkBytesSent),''],
-            ['资源请求',String(lastResourceCount),''],
-            ['接口','浏览器网络栈',''],
+            [t('ui.f12d58650ecc'),formatRate(metrics.networkInRate),'green'],
+            [t('ui.4ee75957758c'),formatRate(metrics.networkOutRate),'orange'],
+            [t('ui.e314a96691c9'),formatBytes(networkBytesReceived),''],
+            [t('ui.ba80022a63e6'),formatBytes(networkBytesSent),''],
+            [t('app.am2.cd19de3818e1'),String(lastResourceCount),''],
+            [t('app.am.9bb19ed866'),t('ui.6bd59b3971da'),''],
           ],
         };
       }
       return {
-        title:'CPU 使用率',
-        legend:[['用户','#39a65b'],['系统','#dc5a50']],
+        title:t('ui.bdf91f384b92'),
+        legend:[[t('ui.9ba763ea3423'),'#39a65b'],[t('ui.1a1f6dff7826'),'#dc5a50']],
         maximum:100,
         stats:[
-          ['% 用户',`${metrics.cpuUser.toFixed(1)}%`,'green'],
-          ['% 系统',`${metrics.cpuSystem.toFixed(1)}%`,'red'],
-          ['% 空闲',`${Math.max(0, 100 - metrics.cpuUser - metrics.cpuSystem).toFixed(1)}%`,''],
-          ['线程',String(currentProcesses.reduce((sum, process) => sum + process.threads, 0)),''],
-          ['进程',String(currentProcesses.length),''],
-          ['刷新率',`${metrics.frameRate.toFixed(0)} fps`,''],
+          [t('ui.a9197713293f'),`${metrics.cpuUser.toFixed(1)}%`,'green'],
+          [t('ui.6fda1fd1a503'),`${metrics.cpuSystem.toFixed(1)}%`,'red'],
+          [t('ui.62eaf1702b37'),`${Math.max(0, 100 - metrics.cpuUser - metrics.cpuSystem).toFixed(1)}%`,''],
+          [t('app.am2.488d6314600a'),String(currentProcesses.reduce((sum, process) => sum + process.threads, 0)),''],
+          [t('app.am2.ee2ea34ae574'),String(currentProcesses.length),''],
+          [t('ui.7bb8bba2d1ab'),`${metrics.frameRate.toFixed(0)} fps`,''],
         ],
       };
     };
@@ -435,7 +441,7 @@
     function renderResourceStats() {
       const definition = resourceDefinition();
       stats.innerHTML = `<header><b>${definition.title}</b><span>${definition.legend.map(([label,color]) => `<i style="--legend:${color}">${label}</i>`).join('')}</span></header><dl>${definition.stats.map(([label,value,tone]) => `<dt>${label}</dt><dd class="${tone}">${escapeHtml(value)}</dd>`).join('')}</dl>`;
-      canvas.setAttribute('aria-label', `${definition.title}历史图表`);
+      canvas.setAttribute('aria-label', `${definition.title}${t('app.am3.160ca7d135cf')}`);
       root.querySelectorAll('[data-resource]').forEach((button) => button.classList.toggle('sel', button.dataset.resource === resource));
     }
 
@@ -522,31 +528,33 @@
     };
 
     const processSample = (process) => {
-      const stamp = new Date().toLocaleString('zh-CN');
+      const stamp = new Date().toLocaleString();
       const mainFrame = process.appId
         ? `${process.name} event loop`
         : process.name === 'WindowServer' ? 'CGXServer main run loop' : `${process.name} main`;
-      return `对进程 ${process.name}（PID ${process.pid}）进行取样，每隔 1 毫秒取样，共 10 秒
-取样时间：${stamp}
-进程路径：${process.path}
-架构：${process.kind}
-
-分析取样进程 ${process.name}（PID ${process.pid}）
-
-调用图：
-    ${Math.max(1, Math.round(process.cpu * 38))} Thread_0   DispatchQueue_1: com.apple.main-thread
-    + ${Math.max(1, Math.round(process.cpu * 24))} ${mainFrame}
-    + ! ${Math.max(1, Math.round(process.cpu * 13))} CFRunLoopRun
-    + ! : ${Math.max(1, Math.round(process.cpu * 8))} mach_msg
-    ${Math.max(1, process.threads - 1)} 工作线程
-      ${process.appId ? 'WebCore / JavaScriptCore 事件处理' : 'Mach 消息与系统服务'}
-
-二进制映像：
-    ${process.path}
-    /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation
-    /usr/lib/libSystem.B.dylib
-
-说明：这是网页版对虚拟进程与浏览器事件循环生成的诊断样本；CPU、内存和帧间隔来自当前会话可观测数据。`;
+      return [
+        `Sampling process ${process.name} (PID ${process.pid}) every 1 ms for 10 seconds`,
+        `Sample time: ${stamp}`,
+        `Process path: ${process.path}`,
+        `Architecture: ${process.kind}`,
+        '',
+        `Analyzing sample of process ${process.name} (PID ${process.pid})`,
+        '',
+        'Call graph:',
+        `    ${Math.max(1, Math.round(process.cpu * 38))} Thread_0   DispatchQueue_1: com.apple.main-thread`,
+        `    + ${Math.max(1, Math.round(process.cpu * 24))} ${mainFrame}`,
+        `    + ! ${Math.max(1, Math.round(process.cpu * 13))} CFRunLoopRun`,
+        `    + ! : ${Math.max(1, Math.round(process.cpu * 8))} mach_msg`,
+        `    ${Math.max(1, process.threads - 1)} worker threads`,
+        `      ${process.appId ? 'WebCore / JavaScriptCore event handling' : 'Mach messages and system services'}`,
+        '',
+        'Binary images:',
+        `    ${process.path}`,
+        '    /System/Library/Frameworks/CoreFoundation.framework/CoreFoundation',
+        '    /usr/lib/libSystem.B.dylib',
+        '',
+        'Note: This is a web-edition diagnostic sample of a virtual process and the browser event loop; CPU, memory, and frame intervals come from session-observable data.',
+      ].join('\n');
     };
 
     const showSample = (pid = selectedPid) => {
@@ -557,36 +565,36 @@
       const pre = el('pre');
       pre.textContent = sample;
       const actions = el('footer');
-      const copy = el('button', 'aqua-btn', '拷贝');
-      const save = el('button', 'aqua-btn', '存储…');
+      const copy = el('button', 'aqua-btn', t('ui.bc6d0279b622'));
+      const save = el('button', 'aqua-btn', t('ui.359721eae599'));
       actions.append(copy, save);
       content.append(pre, actions);
       let sheetApi = null;
       copy.addEventListener('click', async () => {
         try {
           await navigator.clipboard.writeText(sample);
-          Leopard.toast('活动监视器', '进程样本已拷贝。');
+          Leopard.toast(t('ui.8af97a099a8a'), t('ui.e121e0ae3765'));
         } catch (error) {
           System.beep();
         }
       });
       save.addEventListener('click', () => {
         sheetApi?.close('save');
-        const safeName = process.name.replace(/[\u0000-\u001f\\/:]/g, '-').slice(0, 50) || '进程';
+        const safeName = process.name.replace(/[\u0000-\u001f\\/:]/g, '-').slice(0, 50) || t('app.am2.ee2ea34ae574');
         setTimeout(() => System.savePanel({
-          parent:win, title:'存储进程样本', startPath:'/用户/roll/文稿',
-          name:VFS.uniqueName('/用户/roll/文稿', `${safeName} 样本`, '.txt'),
-          extension:'txt', typeLabel:'纯文本文稿', allowOverwrite:true,
+          parent:win, title:t('ui.30b9fb660cc8'), startPath:paths.documents,
+          name:VFS.uniqueName(paths.documents, t('app.am.sampleName', { name: safeName }), '.txt'),
+          extension:'txt', typeLabel:t('ui.0373f454fa15'), allowOverwrite:true,
           onSave:(path) => {
             const saved = VFS.putNode(path, { type:'file', kind:'document', mime:'text/plain', content:sample, creator:'activity', generated:true });
-            if (saved) Leopard.toast('活动监视器', `“${VFS.baseName(path)}”已存储。`);
+            if (saved) Leopard.toast(t('ui.8af97a099a8a'), `“${VFS.baseName(path)}”${t('app.am3.435aef5d8168')}。`);
             return saved;
           },
         }), 0);
       });
       sheetApi = System.showSheet({
-        parent:win, title:`${process.name} 的样本`, content,
-        className:'activity-sample-dialog', buttons:[{ label:'关闭', cancel:true }],
+        parent:win, title:`${process.name} ${t('app.am3.259712e0315b')}`, content,
+        className:'activity-sample-dialog', buttons:[{ label:t('ui.6c14bd7f6f9e'), cancel:true }],
       });
     };
 
@@ -594,22 +602,22 @@
       const process = currentProcesses.find((candidate) => candidate.pid === Number(pid));
       if (!process) return System.beep();
       const content = el('div', 'activity-inspector-sheet');
-      content.innerHTML = `<header><span class="activity-process-orb">${process.system ? '⚙' : 'A'}</span><div><h3>${escapeHtml(process.name)}</h3><p>进程 ID：${process.pid} · ${escapeHtml(process.user)}</p></div></header>
-        <nav><button data-inspector-tab="general" class="sel">统计</button><button data-inspector-tab="memory">内存</button><button data-inspector-tab="files">打开文件和端口</button></nav>
-        <main></main><footer><button class="aqua-btn" data-inspector-sample>取样</button></footer>`;
+      content.innerHTML = `<header><span class="activity-process-orb">${process.system ? '⚙' : 'A'}</span><div><h3>${escapeHtml(process.name)}</h3><p>${t('app.am2.ee2ea34ae574')} ID：${process.pid} · ${escapeHtml(process.user)}</p></div></header>
+        <nav><button data-inspector-tab="general" class="sel">${t('app.am2.89ad93140b91')}</button><button data-inspector-tab="memory">${t('app.am.f8dc2d2a16')}</button><button data-inspector-tab="files">${t('app.am2.0c57ac286b6e')}</button></nav>
+        <main></main><footer><button class="aqua-btn" data-inspector-sample>${t('app.am2.92076723d9d8')}</button></footer>`;
       const main = content.querySelector('main');
       const renderInspectorTab = (tab) => {
         content.querySelectorAll('[data-inspector-tab]').forEach((button) => button.classList.toggle('sel', button.dataset.inspectorTab === tab));
         const live = currentProcesses.find((candidate) => candidate.pid === process.pid) || process;
         if (tab === 'memory') {
-          main.innerHTML = `<dl><dt>实际内存：</dt><dd>${formatBytes(live.memoryBytes)}</dd><dt>虚拟内存：</dt><dd>${formatBytes(live.memoryBytes * 2.65)}</dd><dt>共享内存：</dt><dd>${formatBytes(live.memoryBytes * .18)}</dd><dt>专用内存：</dt><dd>${formatBytes(live.memoryBytes * .82)}</dd><dt>虚拟专用：</dt><dd>${formatBytes(live.memoryBytes * 1.38)}</dd></dl>`;
+          main.innerHTML = `<dl><dt>${t('app.am2.5132eb8e8fde')}</dt><dd>${formatBytes(live.memoryBytes)}</dd><dt>${t('app.am2.fc5c2aa84616')}</dt><dd>${formatBytes(live.memoryBytes * 2.65)}</dd><dt>${t('app.am3.af99b517edc0')}${t('app.am2.a5dba1001b90')}:</dt><dd>${formatBytes(live.memoryBytes * .18)}</dd><dt>${t('app.am3.2c14726227e1')}${t('app.am2.a5dba1001b90')}:</dt><dd>${formatBytes(live.memoryBytes * .82)}</dd><dt>${t('app.am3.8bf74a805278')}</dt><dd>${formatBytes(live.memoryBytes * 1.38)}</dd></dl>`;
         } else if (tab === 'files') {
           const files = live.appId
-            ? [`${live.path}`, `/用户/roll/资源库/Preferences/com.apple.${live.appId}.plist`, '/dev/null', 'localhost:浏览器事件通道']
+            ? [`${live.path}`, `${paths.library}/Preferences/com.apple.${live.appId}.plist`, '/dev/null', t('ui.0215610edd5f')]
             : [live.path, '/dev/null', '/dev/console', '/var/log/system.log'];
-          main.innerHTML = `<pre>${escapeHtml(files.join('\n'))}</pre><p>网页系统只显示虚拟文件路径及浏览器可观测端口。</p>`;
+          main.innerHTML = `<pre>${escapeHtml(files.join('\n'))}</pre><p>${t('app.am3.a317467958bc')}</p>`;
         } else {
-          main.innerHTML = `<dl><dt>状态：</dt><dd class="ok">${live.front ? '正在运行（前台）' : '正在运行'}</dd><dt>% CPU：</dt><dd>${live.cpu.toFixed(1)}</dd><dt>线程：</dt><dd>${live.threads}</dd><dt>种类：</dt><dd>${escapeHtml(live.kind)}</dd><dt>父进程：</dt><dd>${escapeHtml(live.parent)}</dd><dt>路径：</dt><dd>${escapeHtml(live.path)}</dd><dt>窗口：</dt><dd>${live.windowCount || 0}</dd></dl>`;
+          main.innerHTML = `<dl><dt>${t('app.am3.ab2087b4419f')}</dt><dd class="ok">${live.front ? t('ui.8d0fba7ad892') : t('app.am2.762d720fea64')}</dd><dt>% CPU:</dt><dd>${live.cpu.toFixed(1)}</dd><dt>${t('app.am2.488d6314600a')}:</dt><dd>${live.threads}</dd><dt>${t('app.am2.b69cb905d323')}</dt><dd>${escapeHtml(live.kind)}</dd><dt>${t('app.am.parent')}:</dt><dd>${escapeHtml(live.parent)}</dd><dt>${t('app.am3.56961d0717af')}</dt><dd>${escapeHtml(live.path)}</dd><dt>${t('app.am3.f5c4a7ae3da3')}</dt><dd>${live.windowCount || 0}</dd></dl>`;
         }
       };
       content.addEventListener('click', (event) => {
@@ -619,8 +627,8 @@
       });
       renderInspectorTab('general');
       System.showSheet({
-        parent:win, title:`${process.name} 检查器`, content,
-        className:'activity-inspector-dialog', buttons:[{ label:'关闭', cancel:true }],
+        parent:win, title:`${process.name} ${t('app.am3.ba82d11f5aa1')}`, content,
+        className:'activity-inspector-dialog', buttons:[{ label:t('ui.6c14bd7f6f9e'), cancel:true }],
       });
     };
 
@@ -628,14 +636,14 @@
       const process = selectedProcess();
       if (!process) return System.beep();
       if (!process.appId || process.protected) {
-        System.alertBox('活动监视器', '所选系统进程受到保护，不能从网页版退出。');
+        System.alertBox(t('ui.8af97a099a8a'), t('ui.2b582a4430e6'));
         return;
       }
       System.confirmSheet({
         parent:win,
-        headline:`退出进程“${process.name}”？`,
-        message:'未存储的更改可能会丢失。只有这个虚拟应用会退出。',
-        okLabel:'退出', danger:true,
+        headline:`${t('app.am3.86685fb25985')}${t('app.am2.ee2ea34ae574')}“${process.name}”？`,
+        message:t('ui.6082f29dc51f'),
+        okLabel:t('ui.feecb1e6adec'), danger:true,
         onOK:() => {
           System.quitApp(process.appId);
           selectedPid = null;
@@ -701,8 +709,8 @@
     };
 
     win = System.createWindow({
-      app:'activity', title:'活动监视器', width:870, height:590,
-      toolbar, content:root, statusbar:'正在收集进程信息…',
+      app:'activity', title:t('ui.8af97a099a8a'), width:870, height:590,
+      toolbar, content:root, statusbar:t('app.am2.089f15945e2e'),
       onResize:() => scheduleDraw(),
       onClose:() => {
         closed = true;
@@ -764,8 +772,8 @@
   }
 
   System.registerApp({
-    id:'activity', name:'活动监视器', icon, open,
-    about:'检查运行中的虚拟进程，并查看当前会话可观测的 CPU、JavaScript 内存、虚拟磁盘和浏览器网络活动。',
-    keywords:'activity monitor 活动 监视 进程 cpu memory disk network',
+    id:'activity', name:t('ui.8af97a099a8a'), icon, open,
+    about:t('ui.7e04d3e1c8d5'),
+    keywords:t('ui.1c76941b6051'),
   });
 })();

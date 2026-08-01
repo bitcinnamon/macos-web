@@ -1,3 +1,6 @@
+import { System } from '../system/index.js';
+import { t } from '../i18n/index.js';
+
 // 备忘录 (Notes) — localStorage-backed notes with list + editor
 (() => {
   const { el } = System;
@@ -10,10 +13,10 @@
       const v = JSON.parse(localStorage.getItem(KEY));
       if (Array.isArray(v) && v.length) return v;
     } catch (e) {}
-    return [{ id: 1, text: '欢迎使用备忘录！\n\n- 左侧是备忘录列表\n- 内容自动保存到浏览器\n- 点「＋ 新建」再记一条', ts: Date.now() }];
+    return [{ id: 1, text: t('app.notes.welcome'), ts: Date.now() }];
   }
   function save(notes) { localStorage.setItem(KEY, JSON.stringify(notes)); }
-  function firstLine(t) { return (t.trim().split('\n')[0] || '新备忘录').slice(0, 20); }
+  function firstLine(t) { return (t.trim().split('\n')[0] || t('app.notes.newNote')).slice(0, 20); }
   function fmtDate(ts) {
     const d = new Date(ts);
     return `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, '0')}`;
@@ -26,8 +29,8 @@
     const outer = el('div');
     outer.style.cssText = 'display:flex;flex-direction:column;height:100%';
     const head = el('div', 'notes-head');
-    const btnNew = el('button', 'notes-btn', '＋ 新建');
-    const btnDel = el('button', 'notes-btn', '删除');
+    const btnNew = el('button', 'notes-btn', t('ui.19bdfe669ac7'));
+    const btnDel = el('button', 'notes-btn', t('ui.3755f56f2f83'));
     head.append(btnNew, btnDel);
 
     const layout = el('div', 'notes-layout');
@@ -70,7 +73,7 @@
       editor.focus();
     });
     btnDel.addEventListener('click', () => {
-      if (notes.length <= 1) { System.alertBox('备忘录', '至少保留一条备忘录。'); return; }
+      if (notes.length <= 1) { System.alertBox(t('ui.c7ab01c9dfc7'), t('app.notes.keepOne')); return; }
       notes = notes.filter((n) => n.id !== cur);
       cur = notes[0].id;
       save(notes);
@@ -78,12 +81,12 @@
     });
 
     renderList(); renderEditor();
-    System.createWindow({ app: 'notes', title: '备忘录', width: 560, height: 400, content: outer });
+    System.createWindow({ app: 'notes', title: t('ui.c7ab01c9dfc7'), width: 560, height: 400, content: outer });
   }
 
   System.registerApp({
-    id: 'notes', name: '备忘录', icon, open,
-    about: '黄色横格纸风格的备忘录，内容自动保存到 localStorage。',
-    keywords: 'notes 备忘录 记事',
+    id: 'notes', name: t('ui.c7ab01c9dfc7'), icon, open,
+    about: t('ui.743ef0fced0e'),
+    keywords: t('ui.1636053eb7ff'),
   });
 })();
