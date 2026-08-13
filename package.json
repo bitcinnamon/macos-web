@@ -1,0 +1,15 @@
+{
+  "name": "leopard-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Mac OS X 10.5 Leopard, rebuilt in the browser (zero-build, vanilla ES modules).",
+  "scripts": {
+    "test": "node --test tests/*.mjs",
+    "check": "./scripts/check.sh",
+    "test:e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.62.1"
+  }
+}

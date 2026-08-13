@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // 活动监视器 (Activity Monitor) — live processes and browser-observable resources
 (() => {
@@ -27,9 +28,6 @@ import { t } from '../i18n/index.js';
   ];
 
   const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-  }[character]));
   const formatBytes = (value) => {
     const bytes = Math.max(0, Number(value) || 0);
     if (bytes < 1024) return `${bytes.toFixed(0)} B`;
@@ -440,7 +438,7 @@ import { t } from '../i18n/index.js';
 
     function renderResourceStats() {
       const definition = resourceDefinition();
-      stats.innerHTML = `<header><b>${definition.title}</b><span>${definition.legend.map(([label,color]) => `<i style="--legend:${color}">${label}</i>`).join('')}</span></header><dl>${definition.stats.map(([label,value,tone]) => `<dt>${label}</dt><dd class="${tone}">${escapeHtml(value)}</dd>`).join('')}</dl>`;
+      stats.innerHTML = `<header><b>${escapeHtml(definition.title)}</b><span>${definition.legend.map(([label,color]) => `<i style="--legend:${color}">${label}</i>`).join('')}</span></header><dl>${definition.stats.map(([label,value,tone]) => `<dt>${label}</dt><dd class="${tone}">${escapeHtml(value)}</dd>`).join('')}</dl>`;
       canvas.setAttribute('aria-label', `${definition.title}${t('app.am3.160ca7d135cf')}`);
       root.querySelectorAll('[data-resource]').forEach((button) => button.classList.toggle('sel', button.dataset.resource === resource));
     }

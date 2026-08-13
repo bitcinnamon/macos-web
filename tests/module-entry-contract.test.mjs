@@ -8,15 +8,13 @@ assert.match(html, /css\/apps\.css\?v=\d+/);
 assert.match(html, /css\/leopard\.css\?v=\d+/);
 
 // App modules should import System rather than rely on classic script order.
+// The barrel (leopard-native.js) and the shared helper (leopard-native-common.js)
+// are not app implementations and are exempt from this check.
+const EXEMPT = new Set(['leopard-native.js', 'leopard-native-common.js']);
 const apps = readdirSync(new URL('../js/apps', import.meta.url))
-  .filter((name) => name.endsWith('.js') && name !== 'index.js');
+  .filter((name) => name.endsWith('.js') && name !== 'index.js' && !EXEMPT.has(name));
 for (const name of apps) {
   const source = readFileSync(new URL(`../js/apps/${name}`, import.meta.url), 'utf8');
-  if (name === 'leopard-native.js') {
-    const direct = /import\s*\{[^}]*System/.test(source);
-    assert.ok(direct, 'leopard-native.js should import System');
-    continue;
-  }
   assert.match(source, /import\s*\{[^}]*System/, `${name} should import System`);
 }
 

@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { ICONS } from '../icons.js';
 import { HOME_USER, HOME_DISPLAY_NAME, paths, systemPaths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html } from '../escape.js';
 
 /** @param {Record<string, any>} sys shared system bag */
 export function install(sys) {
@@ -781,7 +782,7 @@ export function install(sys) {
   sys.showAboutApp = function showAboutApp(app) {
     if (!app) return;
     const c = sys.el('div', 'about-box');
-    c.innerHTML = `<div class="di-img">${app.icon}</div><h2>${app.name}</h2><div class="ver">${t('u.4b1c64b12d')}</div><p>${app.about || t('u.5cf76f3a30')}</p>`;
+    c.innerHTML = `<div class="di-img">${app.icon}</div><h2>${html(app.name)}</h2><div class="ver">${t('u.4b1c64b12d')}</div><p>${html(app.about || t('u.5cf76f3a30'))}</p>`;
     sys.createWindow({
       app:app.id, title:`About ${app.name}`, width:280, height:260, content:c,
       noResize:true, bodyBg:'#ececec',

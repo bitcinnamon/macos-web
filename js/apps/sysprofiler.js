@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html } from '../escape.js';
 
 // 系统报告 (System Profiler) — real hardware/software info from browser APIs
 (() => {
@@ -411,7 +412,7 @@ import { t } from '../i18n/index.js';
       const sec = SECTIONS.find((s) => s.id === cur);
       main.innerHTML = '';
       const loadingHead = el('header', 'sprof-section-head');
-      loadingHead.innerHTML = `<div class="sprof-section-icon">i</div><div><h2>${sec.name}</h2><p>${t('app.sp4.0849c4ad5c09')}</p></div>`;
+      loadingHead.innerHTML = `<div class="sprof-section-icon">i</div><div><h2>${html(sec.name)}</h2><p>${t('app.sp4.0849c4ad5c09')}</p></div>`;
       main.appendChild(loadingHead);
       const rows = await sec.rows();
       if (version !== renderVersion) return;
@@ -463,7 +464,7 @@ import { t } from '../i18n/index.js';
       const item = el('button', 'sprof-item');
       item.dataset.id = s.id;
       item.dataset.search = `${groupName} ${s.name}`.toLowerCase();
-      item.innerHTML = `<span class="sprof-item-gutter" aria-hidden="true"></span><span>${s.name}</span>`;
+      item.innerHTML = `<span class="sprof-item-gutter" aria-hidden="true"></span><span>${html(s.name)}</span>`;
       item.addEventListener('click', () => { cur = s.id; render(); });
       groupBody.appendChild(item);
     });

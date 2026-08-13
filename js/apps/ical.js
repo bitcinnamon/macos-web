@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // iCal — month view calendar with events in localStorage
 (() => {
@@ -242,7 +243,7 @@ import { t } from '../i18n/index.js';
     function showEventInfo() {
       const entries=(state.events[selectedDate]||[]).filter((event)=>calendarFor(event.calendarId)?.visible!==false);
       const pane=el('div','ical-event-info');
-      pane.innerHTML=`<header><b>${selectedDate}</b><span>${entries.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}</span></header><main>${entries.map((event)=>`<article><i style="background:${calendarFor(event.calendarId)?.color||'#4e8fd4'}"></i><div><b>${event.time?`${event.time} `:''}${event.title}</b><small>${calendarFor(event.calendarId)?.name||t('ui.2d7c0c32a376')}</small></div></article>`).join('')||`<p>${t('app.ical2.d2400783d6a1')}</p>`}</main>`;
+      pane.innerHTML=`<header><b>${escapeHtml(selectedDate)}</b><span>${entries.length}${t('app.ical3.6e145efc77b7')}${t('app.ical4.1c679fff25b1')}</span></header><main>${entries.map((event)=>`<article><i style="background:${escapeHtml(calendarFor(event.calendarId)?.color||'#4e8fd4')}"></i><div><b>${event.time?`${escapeHtml(event.time)} `:''}${escapeHtml(event.title)}</b><small>${escapeHtml(calendarFor(event.calendarId)?.name||t('ui.2d7c0c32a376'))}</small></div></article>`).join('')||`<p>${t('app.ical2.d2400783d6a1')}</p>`}</main>`;
       System.createWindow({
         app:'ical', title:t('app.ical3.2d5ed7d7161b'), width:360, height:300, content:pane,
         noResize:true, bodyBg:'#ececec',
@@ -299,9 +300,6 @@ import { t } from '../i18n/index.js';
     { id:'home', name:t('ui.2d7c0c32a376'), color:'#4f8fd4', visible:true, builtIn:true, account:'onmy' },
     { id:'work', name:t('app.ical.da32b888f1'), color:'#d75b50', visible:true, builtIn:true, account:'onmy' },
   ];
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-  }[character]));
   const clone = (value) => JSON.parse(JSON.stringify(value));
   const pad = (value) => String(value).padStart(2,'0');
   const keyOf = (date) => `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}`;

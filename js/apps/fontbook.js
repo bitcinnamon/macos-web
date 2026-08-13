@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // 字体册 (Font Book) — collections, validation, local-font access and live preview
 (() => {
@@ -21,9 +22,6 @@ import { t } from '../i18n/index.js';
   ];
   const REPERTOIRE = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ÀÁÂÃÄÅÆÇÈÉÊËÌÍÎÏÑÒÓÔÕÖØÙÚÛÜÝßŒœŠšŸ汉字示例，。！？「」『』¥€£¢©®™✓★◆♠♥♦♣←↑→↓';
 
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-  }[character]));
   const fontId = (family) => String(family).trim().toLocaleLowerCase('en-US').replace(/\s+/g, '-').replace(/[^a-z0-9\u3400-\u9fff-]/g, '');
   const isChineseFamily = (family) => /PingFang|Hiragino|Heiti|Songti|Kaiti|STHeiti|STSong|STKaiti|SimSun|黑体|宋体|楷体/i.test(family);
   const isFixedFamily = (family) => /Mono|Monaco|Menlo|Courier|Console|Code/i.test(family);

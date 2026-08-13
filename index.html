@@ -6,9 +6,17 @@
 <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; media-src 'self' data: blob: https:; frame-src 'self' blob: https:; connect-src 'self' https:; font-src 'self' data:; worker-src 'self' blob:; object-src 'none'; base-uri 'none'; form-action 'none'">
 <title>Mac OS X Leopard — Web</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cdefs%3E%3ClinearGradient id='g' y2='1'%3E%3Cstop stop-color='%23f8fafc'/%3E%3Cstop offset='.52' stop-color='%2389939f'/%3E%3Cstop offset='1' stop-color='%23dce2e8'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect x='7' y='5' width='50' height='54' rx='10' fill='url(%23g)' stroke='%234f5964' stroke-width='2'/%3E%3Ccircle cx='32' cy='33' r='18' fill='%23c7d0d9' stroke='%2376818d' stroke-width='2'/%3E%3Ccircle cx='32' cy='33' r='6' fill='%23eef2f5' stroke='%2376818d'/%3E%3Ccircle cx='49' cy='51' r='2' fill='%234acb4a'/%3E%3C/svg%3E">
-<link rel="stylesheet" href="css/aqua.css?v=72">
-  <link rel="stylesheet" href="css/apps.css?v=72">
-  <link rel="stylesheet" href="css/leopard.css?v=72">
+<link rel="stylesheet" href="css/aqua.css?v=73">
+  <link rel="stylesheet" href="css/apps.css?v=73">
+  <link rel="stylesheet" href="css/leopard.css?v=73">
+  <!-- Prefetch + precompile the boot-critical module graph without evaluating
+       it, so the locale-load serialization in main.js no longer stalls these
+       fetches. Evaluation order is unchanged: main.js still awaits initI18n()
+       before importing them. -->
+  <link rel="modulepreload" href="js/vfs.js?v=73">
+  <link rel="modulepreload" href="js/icons.js?v=73">
+  <link rel="modulepreload" href="js/system/index.js?v=73">
+  <link rel="modulepreload" href="js/leopard.js?v=73">
 </head>
 <body>
 
@@ -62,6 +70,6 @@
   </div>
 </div>
 
-<script type="module" src="js/main.js?v=72"></script>
+<script type="module" src="js/main.js?v=73"></script>
 </body>
 </html>

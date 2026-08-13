@@ -10,6 +10,9 @@ echo "==> audit i18n catalogs"
 node scripts/i18n-audit.mjs
 node scripts/prune-i18n-catalogs.mjs
 
+echo "==> audit HTML escaping"
+node scripts/check-html-escaping.mjs --strict
+
 echo "==> node --test"
 node --test tests/*.mjs
 

@@ -4,6 +4,7 @@ import { ICONS } from '../icons.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // 磁盘工具 (Disk Utility) — real storage quota, verify & erase
 (() => {
@@ -12,9 +13,6 @@ import { t } from '../i18n/index.js';
   const icon = `<svg viewBox="0 0 64 64"><defs><radialGradient id="dug" cx=".4" cy=".35"><stop offset="0" stop-color="#f0f2f6"/><stop offset="1" stop-color="#9aa5b5"/></radialGradient></defs><circle cx="32" cy="32" r="25" fill="url(#dug)" stroke="#5a6270" stroke-width="1.5"/><circle cx="32" cy="32" r="15" fill="#c8ccd4" stroke="#7a8090"/><circle cx="32" cy="32" r="5" fill="#5a6270"/><path d="M50 46 l8 8" stroke="#c06030" stroke-width="5" stroke-linecap="round"/><rect x="42" y="36" width="12" height="12" rx="2" fill="#e8b048" stroke="#9a7020" stroke-width="1.5" transform="rotate(45 48 42)"/></svg>`;
 
   function open() {
-    const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-    }[character]));
     const humanBytes = (value) => {
       const bytes = Math.max(0, Number(value) || 0);
       if (bytes < 1024) return `${bytes.toFixed(0)} B`;

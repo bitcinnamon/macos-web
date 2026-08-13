@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // Stickies — Leopard floating rich-text notes with import, export, search and arrangement.
 (() => {
@@ -20,9 +21,6 @@ import { t } from '../i18n/index.js';
   };
   const icon = `<svg viewBox="0 0 64 64"><defs><linearGradient id="stb" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#e4f3ff"/><stop offset="1" stop-color="#98c9ec"/></linearGradient><linearGradient id="sty" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fffbd0"/><stop offset="1" stop-color="#f2df69"/></linearGradient></defs><rect x="7" y="16" width="41" height="40" rx="2" fill="url(#sty)" stroke="#b5a33f" stroke-width="1.5" transform="rotate(-5 27 36)"/><rect x="17" y="9" width="41" height="41" rx="2" fill="url(#stb)" stroke="#6f9cc3" stroke-width="1.5" transform="rotate(3 38 29)"/><g transform="rotate(3 38 29)" stroke="#7da7ca" stroke-width="1.4"><path d="M23 21h29M23 29h29M23 37h23"/></g></svg>`;
 
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g,(character) => ({
-    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;',
-  }[character]));
   const textToHtml = (value) => escapeHtml(value).replace(/\n/g,'<br>');
   const safeHtml = (value) => {
     const template = document.createElement('template');

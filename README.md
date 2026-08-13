@@ -67,13 +67,15 @@ css/apps.css                       应用内容区样式
 css/leopard.css                    Spaces、Dashboard、Time Machine 等扩展 UI
 js/main.js                         启动编排、语言刷新、Service Worker 注册
 js/config.js                       HOME、公共路径与 CACHE_VERSION
+js/escape.js                       统一 HTML 转义 helper（esc/escapeHtml/helpEscape）
+js/perf.js                         可选 Core Web Vitals + 启动阶段测量（?perf=1）
 js/i18n/                           按语言动态加载的词条目录
 js/vfs.js                          同步内存 VFS、迁移、历史与公共 API
 js/vfs-storage.js                  IndexedDB/localStorage/memory 持久层
 js/system/                         窗口、菜单、对话框、服务与应用注册表
 js/apps/index.js                   eager 应用注册 + lazy 应用占位描述
 js/apps/sysprefs.js                首次打开时动态加载的系统偏好设置
-js/apps/leopard-native.js          Mail、通讯录、Photo Booth 等原生感应用实现
+js/apps/leopard-native.js          原生感应用注册入口（按应用拆分为 mail.js / assistants.js 等）
 sw.js                              版本化、网络优先的同源离线缓存
 tests/*.mjs                        契约、行为和回归测试
 scripts/check.sh                   本地与 CI 的统一检查入口
@@ -136,6 +138,8 @@ VFS 对应用保持同步的内存 API，但持久化是异步的：
 - **应用懒加载**：系统偏好设置保留 Finder/Dock 中的图标和名称，但约 240 KB 的实现模块在第一次打开时才下载。注册表会合并并发启动、保留占位对象身份，并允许加载失败后重试。
 - **离线缓存**：桌面进入可交互状态后才注册 `sw.js`。Service Worker 按 `CACHE_VERSION` 建立版本化缓存，删除旧版本，对同源 GET 使用网络优先；断网时回退到已缓存的模块、样式、页面和资源。网络优先用于避免新 HTML 与旧 ES module 图混用。
 - **动画与清理**：高频动画尽量落在合成层；窗口生命周期提供 AbortSignal、监听器/定时器/媒体流/object URL 清理接口，关闭窗口时集中释放资源。
+- **模块预取**：`index.html` 用 `link rel="modulepreload"` 预取并预编译核心模块图（只 fetch+compile、不执行，求值顺序不变），让语言目录加载与核心模块下载并行。
+- **可选的性能测量**：加 `?perf=1`（或 `localStorage['macweb.perf']='1'`）会加载 `js/perf.js`，把启动各阶段耗时与 FCP/LCP/CLS/INP/TTFB 上报到控制台和 `window.__leopardPerf`；默认零开销。
 - **首屏取舍**：项目不打包、不压缩，仍会产生多个 ES module 请求。Service Worker 主要改善回访和离线可用性，并不能替代 HTTP/2/3、压缩、CDN 或生产服务器缓存头。
 
 修改 JavaScript 或 CSS 后，应同步提高 `js/config.js` 中的 `CACHE_VERSION` 以及 `index.html` 中入口和样式的 `?v=`，避免旧缓存混入新模块图。
@@ -191,7 +195,7 @@ Safari、Dictionary、网络实用工具、终端网络命令和示例媒体可�
 
 ## 检查与 CI
 
-要求 Node.js 22（与 CI 一致），无需 `npm install`：
+要求 Node.js 22（与 CI 一致）。单元/契约检查无需 `npm install`：
 
 ```bash
 ./scripts/check.sh
@@ -201,12 +205,24 @@ Safari、Dictionary、网络实用工具、终端网络命令和示例媒体可�
 
 1. 使用 Node `vm.SourceTextModule` 按真正的 ES module 语法解析全部浏览器 JavaScript，而不是把模块误当脚本执行 `node --check`。
 2. 审计中英文目录的键、值类型、插值变量、源码中实际使用的 key 和残留的字面 `${t(...)}`。
-3. 执行 `node --test tests/*.mjs`，覆盖 HOME 迁移、IndexedDB schema/Blob/串行写入与降级、VFS 操作、懒加载、菜单、窗口生命周期、缓存、安全和可访问性等契约。
-4. 执行工作区与暂存区的 `git diff --check`。
+3. 静态审计所有 `innerHTML`/`insertAdjacentHTML`/`outerHTML` 插值，标记未转义的用户/文件文本字段（`scripts/check-html-escaping.mjs --strict`）。
+4. 执行 `node --test tests/*.mjs`，覆盖 HOME 迁移、IndexedDB schema/Blob/串行写入与降级、VFS 操作、懒加载、菜单、窗口生命周期、缓存、安全和可访问性等契约。
+5. 执行工作区与暂存区的 `git diff --check`。
 
 GitHub Actions 在 `push` 和 `pull_request` 上使用 Node.js 22 运行同一 `./scripts/check.sh`，权限为只读，并取消同一分支上已过时的重复任务。
 
 这些测试以模块和行为契约为主。摄像头、麦克风、Bluetooth、跨域 iframe、Service Worker 更新、真实下载以及响应式窗口布局仍需在 `localhost`/HTTPS 的真实浏览器中回归；浏览器控制台应保持无未解释错误。
+
+### 真实浏览器回归（可选，需 dev 依赖）
+
+附带的 Playwright 冒烟测试在真实 Chrome 里走完整启动路径（语言加载 → 模块图 → VFS 水合 → 应用注册 → 开机 → 桌面可交互），并断言打开应用、应用注册和"无未捕获异常"：
+
+```bash
+npm install                     # 只安装 @playwright/test；运行时代码仍零依赖
+npm run test:e2e
+```
+
+`playwright.config.mjs` 默认复用已安装的 Google Chrome（`channel: 'chrome'`），无需下载 Playwright 浏览器；本机没有 Chrome 时先执行 `npx playwright install chrome`。它会自动用 `python3 -m http.server` 起静态服务器。摄像头、麦克风、Bluetooth、跨域 iframe 与真实下载仍只能在真实浏览器/硬件上人工验证。
 
 ## 常见问题
 

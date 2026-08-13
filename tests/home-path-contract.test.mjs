@@ -26,13 +26,14 @@ test('active runtime has no retired hard-coded HOME paths', () => {
 });
 
 test('file-producing apps use configured path constants', () => {
-  const native = fs.readFileSync(path.join(jsRoot, 'apps/leopard-native.js'), 'utf8');
+  const photobooth = fs.readFileSync(path.join(jsRoot, 'apps/photobooth.js'), 'utf8');
+  const automator = fs.readFileSync(path.join(jsRoot, 'apps/automator.js'), 'utf8');
   const preferences = fs.readFileSync(path.join(jsRoot, 'apps/sysprefs.js'), 'utf8');
   const finder = fs.readFileSync(path.join(jsRoot, 'apps/finder-leopard.js'), 'utf8');
 
-  assert.match(native, /const DESKTOP=paths\.desktop/);
-  assert.match(native, /const PHOTO_DIR=`\$\{paths\.pictures\}\/Photo Booth`/);
-  assert.match(native, /VFS\.putNode\(`\$\{paths\.documents\}\/\$\{name\}`/);
+  assert.match(photobooth, /const DESKTOP=paths\.desktop/);
+  assert.match(photobooth, /const PHOTO_DIR=`\$\{paths\.pictures\}\/Photo Booth`/);
+  assert.match(automator, /VFS\.putNode\(`\$\{paths\.documents\}\/\$\{name\}`/);
   assert.match(preferences, /VFS\.uniqueName\(paths\.downloads/);
   assert.match(preferences, /VFS\.putNode\(`\$\{paths\.downloads\}\/\$\{name\}`/);
   assert.match(finder, /path:paths\.home, label:HOME_USER/);

@@ -1,6 +1,7 @@
 import { System } from '../system/index.js';
 import { Leopard } from '../leopard.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // iTunes — Leopard library UI with original, procedurally synthesized songs.
 (() => {
@@ -412,7 +413,7 @@ import { t } from '../i18n/index.js';
       const row = el('button', 'it-song-row');
       row.dataset.index = String(index);
       row.dataset.genre = track.genre;
-      row.innerHTML = `<span class="it-state"></span><span>${index + 1}</span><span>${track.name}</span><span>${track.artist}</span><span>${track.album}</span><span>${track.genre}</span><span>${formatTime(durationOf(track))}</span>`;
+      row.innerHTML = `<span class="it-state"></span><span>${index + 1}</span><span>${escapeHtml(track.name)}</span><span>${escapeHtml(track.artist)}</span><span>${escapeHtml(track.album)}</span><span>${escapeHtml(track.genre)}</span><span>${formatTime(durationOf(track))}</span>`;
       row.addEventListener('click', () => { selected = index; updateUI(ui); });
       row.addEventListener('dblclick', () => playTrack(index, ui));
       list.appendChild(row);

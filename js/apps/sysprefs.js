@@ -7,6 +7,7 @@ import {
   t, getLocale, setLocale, loadInternationalPrefs, saveInternationalPrefs,
   resolveLanguageOrder, localeDisplayName, SUPPORTED_LOCALES,
 } from '../i18n/index.js';
+import { html } from '../escape.js';
 
 // 系统偏好设置 (System Preferences) — icon grid + functional panes
 (() => {
@@ -1043,7 +1044,7 @@ import {
         localStorage.setItem('macweb.loginitems', JSON.stringify(loginIds));
       });
       lb.append(cb);
-      lb.insertAdjacentHTML('beforeend', `<span class="spp-li-icon">${a.icon}</span> ${a.name}`);
+      lb.insertAdjacentHTML('beforeend', `<span class="spp-li-icon">${a.icon}</span> ${html(a.name)}`);
       list.appendChild(lb);
     });
     c.appendChild(row(t('prefs.accounts.loginItems'), list, t('prefs.accounts.loginHelp')));
@@ -2129,7 +2130,7 @@ import {
       const select = c.querySelector('.speech-voice');
       const fillVoices = () => {
         const voices = speechSynthesis.getVoices();
-        select.innerHTML = voices.map((v, i) => `<option value="${i}">${v.name} — ${v.lang}</option>`).join('') || `<option>${t('prefs.msg.6bfeac3dc6')}</option>`;
+        select.innerHTML = voices.map((v, i) => `<option value="${i}">${html(v.name)} — ${html(v.lang)}</option>`).join('') || `<option>${t('prefs.msg.6bfeac3dc6')}</option>`;
       };
       fillVoices(); speechSynthesis.addEventListener?.('voiceschanged', fillVoices, { once: true });
       c.querySelector('.speech-play').addEventListener('click', () => {
@@ -2223,7 +2224,7 @@ import {
       if (voiceSelect && 'speechSynthesis' in window) {
         const fill = () => {
           const voices = speechSynthesis.getVoices();
-          voiceSelect.innerHTML = `<option value="">${t('prefs.msg.6bfeac3dc6')}</option>` + voices.map((voice, index) => `<option value="${index}">${voice.name} — ${voice.lang}</option>`).join('');
+          voiceSelect.innerHTML = `<option value="">${t('prefs.msg.6bfeac3dc6')}</option>` + voices.map((voice, index) => `<option value="${index}">${html(voice.name)} — ${html(voice.lang)}</option>`).join('');
         };
         fill();
         speechSynthesis.addEventListener?.('voiceschanged', fill, { once: true });
@@ -2835,7 +2836,7 @@ import {
         const select = c.querySelector('.speech-voice');
         const fillVoices = () => {
           const voices = speechSynthesis.getVoices();
-          select.innerHTML = voices.map((voice,index) => `<option value="${index}">${voice.name} — ${voice.lang}</option>`).join('') || `<option>${t('prefs.msg.6bfeac3dc6')}</option>`;
+          select.innerHTML = voices.map((voice,index) => `<option value="${index}">${html(voice.name)} — ${html(voice.lang)}</option>`).join('') || `<option>${t('prefs.msg.6bfeac3dc6')}</option>`;
         };
         fillVoices(); speechSynthesis.addEventListener?.('voiceschanged', fillVoices, { once:true });
         c.querySelector('.speech-play').addEventListener('click', () => {

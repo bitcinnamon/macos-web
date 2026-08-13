@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { ICONS } from '../icons.js';
 import { HOME_USER, paths, systemPaths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html } from '../escape.js';
 
 /** @param {Record<string, any>} sys shared system bag */
 export function install(sys) {
@@ -265,7 +266,7 @@ export function install(sys) {
       sel = null;
       Object.values(sys.apps).filter((a) => a.windows.length).forEach((a) => {
         const row = sys.el('div', 'fq-row');
-        row.innerHTML = `${a.icon}<span>${a.name}</span>`;
+        row.innerHTML = `${a.icon}<span>${html(a.name)}</span>`;
         row.addEventListener('click', () => {
           list.querySelectorAll('.fq-row').forEach((x) => x.classList.remove('sel'));
           row.classList.add('sel');

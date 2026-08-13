@@ -1,6 +1,7 @@
 import { System } from '../system/index.js';
 import { Leopard } from '../leopard.js';
 import { t } from '../i18n/index.js';
+import { html as esc } from '../escape.js';
 
 // Safari — keeps browsing inside the simulated browser, with compatibility
 // readers for sites whose scripted popups cannot be intercepted cross-origin.
@@ -86,12 +87,6 @@ import { t } from '../i18n/index.js';
     [t('app.saf.03f362e73d86'), 'https://www.bilibili.com/c/knowledge/'],
     [t('app.saf.1e20352a27c5'), 'https://www.bilibili.com/c/tech/'],
   ];
-
-  function esc(value) {
-    return String(value ?? '').replace(/[&<>"']/g, (char) => ({
-      '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-    }[char]));
-  }
 
   function normalizedHttpUrl(value, base = 'https://www.bilibili.com/') {
     try {

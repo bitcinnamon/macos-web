@@ -5,6 +5,7 @@ import { System } from './system/index.js';
 import { VFS } from './vfs.js';
 import { ICONS } from './icons.js';
 import { paths } from './config.js';
+import { html as esc } from './escape.js';
 
 const Leopard = (() => {
   const { el } = System;
@@ -26,10 +27,6 @@ const Leopard = (() => {
     capture: false,
     initialized: false,
   };
-
-  const esc = (s) => String(s == null ? '' : s)
-    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 
   const glyph = (kind, size = 64) => {
     const common = `viewBox="0 0 64 64" width="${size}" height="${size}" aria-hidden="true"`;
@@ -879,6 +876,10 @@ const Leopard = (() => {
     } else if (node.type === 'file') {
       const text = String(node.content || '');
       if (node.richText || (/^\s*</.test(text) && /\.html?$/i.test(name))) {
+        // File/rich-text content is rendered as HTML below, so the iframe is
+        // sandboxed with no permissions and a srcdoc CSP (default-src 'none')
+        // that blocks scripts and network. Keep `sandbox=""` intact: it is what
+        // stops a hostile .html/.rtf document from executing code in Quick Look.
         const frame = el('iframe', 'ql-richtext');
         frame.title = name;
         frame.setAttribute('sandbox', '');

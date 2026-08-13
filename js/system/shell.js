@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { ICONS } from '../icons.js';
 import { HOME_USER, HOME_DISPLAY_NAME, paths } from '../config.js';
 import { t, getLocale } from '../i18n/index.js';
+import { html } from '../escape.js';
 import {
   clampDesktopPosition,
   recoverLegacyDesktopPositions,
@@ -89,7 +90,7 @@ export function install(sys) {
     d.setAttribute('role', 'button');
     d.setAttribute('tabindex', '0');
     d.setAttribute('aria-label', app.name);
-    d.innerHTML = `${app.icon}<div class="di-reflect">${app.icon}</div><div class="dock-label">${app.name}</div><div class="run-dot"></div>`;
+    d.innerHTML = `${app.icon}<div class="di-reflect">${app.icon}</div><div class="dock-label">${html(app.name)}</div><div class="run-dot"></div>`;
     d.addEventListener('click', () => {
       if (app.windows.some((w) => w._hiddenByApp)) {
         sys.showApp(id);
@@ -593,7 +594,7 @@ export function install(sys) {
         .slice(0, 6)
         .forEach((a, i) => {
           const item = sys.el('div', 'spot-item' + (i === 0 ? ' sel' : ''));
-          item.innerHTML = `${a.icon}<span>${a.name}</span>`;
+          item.innerHTML = `${a.icon}<span>${html(a.name)}</span>`;
           item.addEventListener('click', () => { toggle(false); sys.launch(a.id); });
           results.appendChild(item);
         });

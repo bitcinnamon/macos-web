@@ -3,10 +3,60 @@ import { VFS } from '../vfs.js';
 import { ICONS } from '../icons.js';
 import { HOME_USER, HOME_DISPLAY_NAME, paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html } from '../escape.js';
 
 /** @param {Record<string, any>} sys shared system bag */
 export function install(sys) {
 // ---------- Application command routing ----------
+
+  // Copy/cut prefer the async Clipboard API and fall back to execCommand, since
+  // Clipboard API needs a secure context, a user gesture, and (inside a
+  // cross-origin iframe) a clipboard-write permission policy.
+  function selectedText() {
+    const active = document.activeElement;
+    if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
+      const start = typeof active.selectionStart === 'number' ? active.selectionStart : 0;
+      const end = typeof active.selectionEnd === 'number' ? active.selectionEnd : 0;
+      return String(active.value ?? '').slice(start, end);
+    }
+    try { return window.getSelection?.()?.toString() || ''; } catch (e) { return ''; }
+  }
+
+  function writeClipboard(text) {
+    if (!navigator.clipboard?.writeText) return Promise.reject(new Error('Clipboard API unavailable'));
+    return navigator.clipboard.writeText(text);
+  }
+
+  function copySelection() {
+    const text = selectedText();
+    const legacy = () => { try { return document.execCommand('copy'); } catch (e) { return false; } };
+    if (!text) return legacy();
+    return writeClipboard(text).then(() => true, legacy);
+  }
+
+  function cutSelection() {
+    const text = selectedText();
+    if (!text) return false;
+    const removeSelection = () => {
+      const active = document.activeElement;
+      if (active && (active.tagName === 'TEXTAREA' || active.tagName === 'INPUT')) {
+        try {
+          const start = typeof active.selectionStart === 'number' ? active.selectionStart : 0;
+          const end = typeof active.selectionEnd === 'number' ? active.selectionEnd : String(active.value ?? '').length;
+          const value = String(active.value ?? '');
+          active.value = value.slice(0, start) + value.slice(end);
+          active.setSelectionRange(start, start);
+        } catch (e) {}
+      } else {
+        try {
+          const selection = window.getSelection?.();
+          if (selection && !selection.isCollapsed) selection.deleteFromDocument();
+        } catch (e) {}
+      }
+    };
+    const legacy = () => { try { return document.execCommand('cut'); } catch (e) { return false; } };
+    return writeClipboard(text).then(() => { removeSelection(); return true; }, legacy);
+  }
 
   sys.dispatchAppCommand = function dispatchAppCommand(appId, command, detail) {
     const front = sys.topWindowOf(appId);
@@ -36,8 +86,12 @@ export function install(sys) {
       case 'close-window': if (win) sys.closeWindow(win); return !!win;
       case 'minimize': if (win) sys.minimizeWindow(win); return !!win;
       case 'zoom': win?.querySelector('.tl-zoom')?.click(); return !!win;
-      case 'undo': case 'redo': case 'cut': case 'copy': case 'paste':
-      case 'delete': case 'selectAll':
+      case 'copy': return copySelection();
+      case 'cut': return cutSelection();
+      // paste / undo / redo / delete / selectAll still use execCommand: paste
+      // needs clipboard-read permission and cursor insertion, undo/redo have no
+      // Clipboard API equivalent, and delete/selectAll are editing operations.
+      case 'paste': case 'undo': case 'redo': case 'delete': case 'selectAll':
         try { return document.execCommand(command); } catch (e) { return false; }
       default: return false;
     }
@@ -109,9 +163,7 @@ export function install(sys) {
     configurable: true,
   });
 
-  sys.helpEscape = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-  }[character]));
+  sys.helpEscape = html;
 
   sys.appHelpArticle = function appHelpArticle(appId) {
     const app = sys.apps[appId];
@@ -1811,7 +1863,7 @@ export function install(sys) {
       tab.type = 'button';
       tab.dataset.appPrefTab = tabDefinition.id;
       tab.setAttribute('role', 'tab');
-      tab.innerHTML = `<i aria-hidden="true">${tabDefinition.glyph || '⚙'}</i><span>${tabDefinition.label}</span>`;
+      tab.innerHTML = `<i aria-hidden="true">${tabDefinition.glyph || '⚙'}</i><span>${html(tabDefinition.label)}</span>`;
       tabs.appendChild(tab);
 
       const panel = sys.el('section', 'app-preference-panel');

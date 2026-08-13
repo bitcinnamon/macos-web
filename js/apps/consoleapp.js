@@ -3,6 +3,7 @@ import { VFS } from '../vfs.js';
 import { Leopard } from '../leopard.js';
 import { paths } from '../config.js';
 import { t } from '../i18n/index.js';
+import { html as escapeHtml } from '../escape.js';
 
 // 控制台 (Console) — system log browser, captured console output and JS diagnostics
 (() => {
@@ -58,9 +59,6 @@ import { t } from '../i18n/index.js';
     pushCaptured('Promise', t('app.con.unhandled', { reason: safeArgument(event.reason) }), 'error');
   });
 
-  const escapeHtml = (value) => String(value ?? '').replace(/[&<>"']/g, (character) => ({
-    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;',
-  }[character]));
   const levelForSystem = (entry) => {
     const text = `${entry.src} ${entry.msg}`.toLocaleLowerCase('zh-CN');
     if (/error|failed|失败|crash|崩溃|fatal/i.test(text)) return 'error';

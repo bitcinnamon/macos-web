@@ -23,7 +23,7 @@ export const VFS_HOME_MIGRATION_BACKUP_KEY = `${VFS_KEY}.backup.pre-home-migrati
  * Bump when shipping breaking JS/CSS that browsers might cache.
  * index.html should reference main.js and CSS with this query (or match manually).
  */
-export const CACHE_VERSION = 72;
+export const CACHE_VERSION = 73;
 
 /** Users parent directory in the virtual filesystem (localized Leopard layout). */
 export const USERS_ROOT = '/用户';

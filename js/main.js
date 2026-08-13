@@ -6,6 +6,7 @@ import { initI18n, t, onLocaleChange, getLocale } from './i18n/index.js';
 // Load exactly one locale before evaluating modules that call t() at module
 // scope. t() stays synchronous for the rest of the application lifecycle.
 await initI18n();
+performance.mark('leopard:i18n-done');
 
 const [
   { VFS },
@@ -18,14 +19,17 @@ const [
   import('./system/index.js'),
   import('./leopard.js'),
 ]);
+performance.mark('leopard:modules-done');
 
 // Keep the public VFS API synchronous, but do not let Finder or applications
 // observe the bootstrap tree before IndexedDB hydration/migration completes.
 await VFS.ready;
+performance.mark('leopard:vfs-ready');
 
 // Application registration is intentionally deferred until the selected
 // catalog and the shared system services are ready.
 await import('./apps/index.js');
+performance.mark('leopard:apps-done');
 
 const APP_NAME_KEYS = {
   finder: 'app.finder',
@@ -136,3 +140,12 @@ if ('serviceWorker' in navigator && location.protocol !== 'file:') {
 System.boot();
 Leopard.init();
 refreshChromeForLocale();
+performance.mark('leopard:dom-ready');
+
+// Opt-in Core Web Vitals / boot-phase reporting. The default page pays nothing:
+// perf.js is imported and its observers installed only when requested.
+try {
+  if (new URLSearchParams(location.search).has('perf') || location.hash === '#perf' || localStorage.getItem('macweb.perf') === '1') {
+    import('./perf.js').then((module) => module.installPerf()).catch(() => {});
+  }
+} catch (error) { /* measurement is best-effort */ }

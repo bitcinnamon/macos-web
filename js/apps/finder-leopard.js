@@ -8,6 +8,7 @@ import {
   finderDisplayName, finderDisplayPath, finderSidebarRoute,
   finderVisibleChildren,
 } from '../finder-display.js';
+import { html as esc } from '../escape.js';
 
 // Leopard Finder — four views, Quick Look, content search, richer actions and menus.
 (() => {
@@ -95,8 +96,6 @@ import {
     return `<svg viewBox="0 0 24 24" aria-hidden="true">${glyphs[name] || ''}</svg>`;
   };
 
-  const esc = (s) => String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   const displayPath = (path) => finderDisplayPath(path);
   const nodeIcon = (path) => System.fileIconFor?.(path) || (VFS.get(path)?.type === 'dir' ? ICONS.folder : ICONS.textfile);
   let cachedFinderPrefs = System.getFinderPreferences();
@@ -1219,7 +1218,7 @@ import {
         const row = el('div','fs-item');
         row.dataset.route = entry.route;
         if (entry.path) row.dataset.path = entry.path;
-        row.innerHTML = `${entry.icon}<span>${entry.label}</span>`;
+        row.innerHTML = `${entry.icon}<span>${esc(entry.label)}</span>`;
         row.addEventListener('click',()=>{
           win._sidebarRoute = entry.route;
           if (entry.smart) {

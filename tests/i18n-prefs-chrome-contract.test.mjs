@@ -143,10 +143,10 @@ assert.ok(calc.includes('<textarea'), 'calculator paper tape has textarea');
 assert.ok(!/t\('u\.[a-f0-9]+t\(/.test(calc), 'calculator has no nested t()');
 assert.ok(calc.includes('tape-clear') || calc.includes('tape-recalculate') || calc.includes('calculator-tape'), 'calculator tape chrome present');
 
-// Mail monolith path (not modular stub) must be intact
-const mailHost = readFileSync(join(root, 'js/apps/leopard-native.js'), 'utf8');
-assert.ok(mailHost.includes("id: 'mail'") || mailHost.includes('id:"mail"') || mailHost.includes("id:'mail'"), 'mail app registered in monolith');
-assert.ok(!/t\('u\.[a-f0-9]+t\(/.test(mailHost), 'leopard-native monolith has no nested t()');
+// Mail module (split from the old leopard-native monolith) must be intact
+const mailHost = readFileSync(join(root, 'js/apps/mail.js'), 'utf8');
+assert.ok(mailHost.includes("id:'mail'") || mailHost.includes('id:"mail"') || mailHost.includes("id: 'mail'"), 'mail app registered');
+assert.ok(!/t\('u\.[a-f0-9]+t\(/.test(mailHost), 'mail module has no nested t()');
 assert.ok(mailHost.includes('mail-row') || mailHost.includes('composeMail') || mailHost.includes('MAIL_KEY'), 'mail UI builders present');
 
 
